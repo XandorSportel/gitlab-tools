@@ -44,6 +44,18 @@ class GitLabClient
         ]);
     }
 
+    public function issueLabelEvents(string $project, int $issueIid): array
+    {
+        $events = $this->all('/projects/'.rawurlencode($project).'/issues/'.$issueIid.'/resource_label_events');
+
+        usort($events, fn (array $first, array $second) => strcmp(
+            $first['created_at'],
+            $second['created_at'],
+        ));
+
+        return $events;
+    }
+
     private function get(string $path, array $query = []): array
     {
         $response = $this->request()->get($path, $query);
@@ -79,6 +91,7 @@ class GitLabClient
         return Http::baseUrl(rtrim($this->baseUrl, '/').'/api/v4')
             ->withHeaders(['PRIVATE-TOKEN' => $this->token])
             ->acceptJson()
+            ->connectTimeout(5)
             ->timeout(15)
             ->retry(2, 200);
     }

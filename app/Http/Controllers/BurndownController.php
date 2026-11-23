@@ -35,7 +35,21 @@ class BurndownController extends Controller
             $client = $this->client();
             $milestoneData = $client->milestone($this->project(), $milestone);
             $issues = $client->milestoneIssues($this->project(), $milestone);
-            $chart = $calculator->calculate($milestoneData, $issues, $metric);
+            $issues = array_values(array_filter(
+                $issues,
+                fn (array $issue): bool => ! $this->hasConfiguredLabel($issue, config('services.gitlab.ignored_issue_labels')),
+            ));
+            $issues = array_map(function (array $issue) use ($client): array {
+                $issue['label_events'] = $client->issueLabelEvents($this->project(), $issue['iid']);
+
+                return $issue;
+            }, $issues);
+            $chart = $calculator->calculate(
+                $milestoneData,
+                $issues,
+                $metric,
+                config('services.gitlab.completed_labels'),
+            );
         } catch (Throwable $e) {
             return redirect()->route('burndown.index')->withErrors(['chart' => $e->getMessage()]);
         }
@@ -62,5 +76,21 @@ class BurndownController extends Controller
         }
 
         return $project;
+    }
+
+    /**
+     * @param  array<int, string>  $configuredLabels
+     */
+    private function hasConfiguredLabel(array $issue, array $configuredLabels): bool
+    {
+        $issueLabels = array_map(mb_strtolower(...), $issue['labels'] ?? []);
+
+        foreach ($configuredLabels as $configuredLabel) {
+            if (in_array(mb_strtolower($configuredLabel), $issueLabels, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

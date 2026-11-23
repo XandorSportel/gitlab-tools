@@ -82,4 +82,55 @@ class BurndownCalculatorTest extends TestCase
         $this->assertSame([1, 1, 1, 1, 1, 1, 0, 0], $result['actual']);
         $this->assertSame(0.0, $result['ideal'][7]);
     }
+
+    public function test_completion_label_history_updates_the_burndown(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-05');
+        $result = (new BurndownCalculator)->calculate(
+            ['start_date' => '2026-11-01', 'due_date' => '2026-11-05'],
+            [[
+                'created_at' => '2026-10-30T09:00:00Z',
+                'closed_at' => null,
+                'state' => 'opened',
+                'labels' => ['SP-5', 'In MR'],
+                'label_events' => [
+                    ['action' => 'add', 'label' => ['name' => 'SP-5'], 'created_at' => '2026-11-02T09:00:00Z'],
+                    ['action' => 'add', 'label' => ['name' => 'In MR'], 'created_at' => '2026-11-04T09:00:00Z'],
+                ],
+            ]],
+            'story_points',
+            ['In MR'],
+        );
+
+        $this->assertSame(0.0, $result['initial']);
+        $this->assertSame(5.0, $result['completed']);
+        $this->assertSame(0, $result['remaining']);
+        $this->assertSame(5.0, $result['scope_added']);
+        $this->assertSame([0.0, 5.0, 5.0, 0, 0], $result['actual']);
+    }
+
+    public function test_removed_completion_label_returns_work_to_remaining_scope(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-05');
+        $result = (new BurndownCalculator)->calculate(
+            ['start_date' => '2026-11-01', 'due_date' => '2026-11-05'],
+            [[
+                'created_at' => '2026-10-30T09:00:00Z',
+                'closed_at' => null,
+                'state' => 'opened',
+                'labels' => ['SP-2'],
+                'label_events' => [
+                    ['action' => 'add', 'label' => ['name' => 'SP-2'], 'created_at' => '2026-10-30T09:00:00Z'],
+                    ['action' => 'add', 'label' => ['name' => 'In MR'], 'created_at' => '2026-11-03T09:00:00Z'],
+                    ['action' => 'remove', 'label' => ['name' => 'In MR'], 'created_at' => '2026-11-05T09:00:00Z'],
+                ],
+            ]],
+            'story_points',
+            ['In MR'],
+        );
+
+        $this->assertSame(0.0, $result['completed']);
+        $this->assertSame(2.0, $result['remaining']);
+        $this->assertSame([2.0, 2.0, 0, 0, 2.0], $result['actual']);
+    }
 }

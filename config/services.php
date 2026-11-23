@@ -6,6 +6,8 @@ return [
         'url' => env('GITLAB_URL', 'https://gitlab.com'),
         'project' => env('GITLAB_PROJECT'),
         'token' => env('GITLAB_TOKEN'),
+        'completed_labels' => array_values(array_filter(array_map('trim', explode(',', env('GITLAB_COMPLETED_LABELS', 'In MR'))))),
+        'ignored_issue_labels' => array_values(array_filter(array_map('trim', explode(',', env('GITLAB_IGNORED_ISSUE_LABELS', 'Epic'))))),
     ],
 
     /*

@@ -7,7 +7,10 @@ use InvalidArgumentException;
 
 class BurndownCalculator
 {
-    public function calculate(array $milestone, array $issues, string $metric = 'count'): array
+    /**
+     * @param  array<int, string>  $completedLabels
+     */
+    public function calculate(array $milestone, array $issues, string $metric = 'count', array $completedLabels = []): array
     {
         $start = $this->date($milestone['start_date'] ?? null, 'The milestone needs a start date.');
         $due = $this->date($milestone['due_date'] ?? null, 'The milestone needs a due date.');
@@ -19,7 +22,9 @@ class BurndownCalculator
         $chartEnd = $due->lt($today) ? $today : $due;
         $totalAtEnd = array_sum(array_map(fn (array $issue) => $this->value($issue, $metric), $issues));
         $initial = array_sum(array_map(
-            fn (array $issue) => CarbonImmutable::parse($issue['created_at'])->startOfDay()->lte($start) ? $this->value($issue, $metric) : 0,
+            fn (array $issue) => CarbonImmutable::parse($issue['created_at'])->startOfDay()->lte($start)
+                ? $this->valueAtDate($issue, $metric, $start)
+                : 0,
             $issues
         ));
 
@@ -29,15 +34,19 @@ class BurndownCalculator
         for ($date = $start, $offset = 0; $date->lte($chartEnd); $date = $date->addDay(), $offset++) {
             $labels[] = $date->format('M j');
             $ideal[] = round(max(0, $initial * (1 - ($offset / $days))), 2);
-            $actual[] = $date->gt($today) ? null : array_sum(array_map(function (array $issue) use ($date, $metric) {
+            $actual[] = $date->gt($today) ? null : array_sum(array_map(function (array $issue) use ($date, $metric, $completedLabels) {
                 $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
-                $closed = isset($issue['closed_at']) ? CarbonImmutable::parse($issue['closed_at'])->startOfDay() : null;
 
-                return $created->lte($date) && (! $closed || $closed->gt($date)) ? $this->value($issue, $metric) : 0;
+                return $created->lte($date) && ! $this->isCompletedAt($issue, $date, $completedLabels)
+                    ? $this->valueAtDate($issue, $metric, $date)
+                    : 0;
             }, $issues));
         }
 
-        $remaining = array_sum(array_map(fn (array $issue) => ($issue['state'] ?? 'opened') === 'closed' ? 0 : $this->value($issue, $metric), $issues));
+        $remaining = array_sum(array_map(
+            fn (array $issue) => $this->isCompleted($issue, $completedLabels) ? 0 : $this->value($issue, $metric),
+            $issues,
+        ));
 
         return compact('labels', 'actual', 'ideal') + [
             'initial' => $initial,
@@ -60,6 +69,83 @@ class BurndownCalculator
         }
 
         return 1;
+    }
+
+    private function valueAtDate(array $issue, string $metric, CarbonImmutable $date): int|float
+    {
+        if ($metric !== 'story_points') {
+            return $this->value($issue, $metric);
+        }
+
+        return $this->storyPoints($this->labelsAt($issue, $date));
+    }
+
+    /**
+     * @param  array<int, string>  $completedLabels
+     */
+    private function isCompleted(array $issue, array $completedLabels): bool
+    {
+        return ($issue['state'] ?? 'opened') === 'closed'
+            || $this->hasLabel($issue['labels'] ?? [], $completedLabels);
+    }
+
+    /**
+     * @param  array<int, string>  $completedLabels
+     */
+    private function isCompletedAt(array $issue, CarbonImmutable $date, array $completedLabels): bool
+    {
+        $closedAt = isset($issue['closed_at']) ? CarbonImmutable::parse($issue['closed_at'])->startOfDay() : null;
+
+        return ($closedAt && $closedAt->lte($date))
+            || $this->hasLabel($this->labelsAt($issue, $date), $completedLabels);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function labelsAt(array $issue, CarbonImmutable $date): array
+    {
+        if (! array_key_exists('label_events', $issue)) {
+            return $issue['labels'] ?? [];
+        }
+
+        $labels = [];
+
+        foreach ($issue['label_events'] as $event) {
+            if (CarbonImmutable::parse($event['created_at'])->startOfDay()->gt($date)) {
+                continue;
+            }
+
+            $label = $event['label']['name'] ?? null;
+            if (! $label) {
+                continue;
+            }
+
+            if ($event['action'] === 'add') {
+                $labels[mb_strtolower($label)] = $label;
+            } elseif ($event['action'] === 'remove') {
+                unset($labels[mb_strtolower($label)]);
+            }
+        }
+
+        return array_values($labels);
+    }
+
+    /**
+     * @param  array<int, string>  $labels
+     * @param  array<int, string>  $expectedLabels
+     */
+    private function hasLabel(array $labels, array $expectedLabels): bool
+    {
+        $normalizedLabels = array_map(mb_strtolower(...), $labels);
+
+        foreach ($expectedLabels as $expectedLabel) {
+            if (in_array(mb_strtolower($expectedLabel), $normalizedLabels, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
