@@ -32,6 +32,7 @@ class BurndownCalculator
             $actual[] = $date->gt($today) ? null : array_sum(array_map(function (array $issue) use ($date, $metric) {
                 $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
                 $closed = isset($issue['closed_at']) ? CarbonImmutable::parse($issue['closed_at'])->startOfDay() : null;
+
                 return $created->lte($date) && (! $closed || $closed->gt($date)) ? $this->value($issue, $metric) : 0;
             }, $issues));
         }
@@ -50,7 +51,29 @@ class BurndownCalculator
 
     private function value(array $issue, string $metric): int|float
     {
-        return $metric === 'weight' ? (float) ($issue['weight'] ?? 0) : 1;
+        if ($metric === 'weight') {
+            return (float) ($issue['weight'] ?? 0);
+        }
+
+        if ($metric === 'story_points') {
+            return $this->storyPoints($issue['labels'] ?? []);
+        }
+
+        return 1;
+    }
+
+    /**
+     * @param  array<int, string>  $labels
+     */
+    private function storyPoints(array $labels): float
+    {
+        foreach ($labels as $label) {
+            if (preg_match('/^SP-(\d+(?:\.\d+)?)$/i', $label, $matches) === 1) {
+                return (float) $matches[1];
+            }
+        }
+
+        return 0.0;
     }
 
     private function date(?string $value, string $message): CarbonImmutable

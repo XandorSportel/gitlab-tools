@@ -5,7 +5,7 @@
     <div class="page-head"><div><h2>{{ $milestoneData['title'] }}</h2><p>{{ $milestoneData['start_date'] }} → {{ $milestoneData['due_date'] }}</p></div></div>
     <div class="toolbar">
         <a class="button secondary" href="{{ route('burndown.index') }}">← All milestones</a>
-        <form method="get"><label for="metric" style="margin:0">Measure by</label><select id="metric" name="metric" onchange="this.form.submit()"><option value="count" @selected($metric === 'count')>Issue count</option><option value="weight" @selected($metric === 'weight')>Issue weight</option></select></form>
+        <form method="get"><label for="metric" style="margin:0">Measure by</label><select id="metric" name="metric" onchange="this.form.submit()"><option value="count" @selected($metric === 'count')>Issue count</option><option value="weight" @selected($metric === 'weight')>Issue weight</option><option value="story_points" @selected($metric === 'story_points')>Story points</option></select></form>
     </div>
     <div class="stats">
         <div class="stat"><span>Initial scope</span><strong>{{ $chart['initial'] }}</strong></div>

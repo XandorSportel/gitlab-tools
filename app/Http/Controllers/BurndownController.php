@@ -27,7 +27,9 @@ class BurndownController extends Controller
     public function show(Request $request, int $milestone, BurndownCalculator $calculator): View|RedirectResponse
     {
         $requestedMetric = $request->string('metric')->toString();
-        $metric = $requestedMetric === 'weight' ? 'weight' : 'count';
+        $metric = in_array($requestedMetric, ['count', 'weight', 'story_points'], true)
+            ? $requestedMetric
+            : 'count';
 
         try {
             $client = $this->client();
@@ -48,6 +50,7 @@ class BurndownController extends Controller
         if (! $token) {
             throw new \RuntimeException('GITLAB_TOKEN is not configured in the environment.');
         }
+
         return new GitLabClient($url, $token);
     }
 
@@ -57,6 +60,7 @@ class BurndownController extends Controller
         if (! $project) {
             throw new \RuntimeException('GITLAB_PROJECT is not configured in the environment.');
         }
+
         return $project;
     }
 }

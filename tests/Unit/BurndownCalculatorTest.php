@@ -45,6 +45,25 @@ class BurndownCalculatorTest extends TestCase
         $this->assertSame(5.0, $result['initial']);
     }
 
+    public function test_story_point_labels_determine_issue_value(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-05');
+        $result = (new BurndownCalculator)->calculate(
+            ['start_date' => '2026-11-01', 'due_date' => '2026-11-05'],
+            [
+                ['created_at' => '2026-10-30T09:00:00Z', 'closed_at' => '2026-11-03T09:00:00Z', 'state' => 'closed', 'labels' => ['backend', 'SP-8']],
+                ['created_at' => '2026-10-31T09:00:00Z', 'closed_at' => null, 'state' => 'opened', 'labels' => ['sp-1']],
+                ['created_at' => '2026-10-31T09:00:00Z', 'closed_at' => null, 'state' => 'opened', 'labels' => ['no-estimate']],
+            ],
+            'story_points',
+        );
+
+        $this->assertSame(9.0, $result['initial']);
+        $this->assertSame(8.0, $result['completed']);
+        $this->assertSame(1.0, $result['remaining']);
+        $this->assertSame([9.0, 9.0, 1.0, 1.0, 1.0], $result['actual']);
+    }
+
     public function test_it_requires_milestone_dates(): void
     {
         $this->expectException(InvalidArgumentException::class);
