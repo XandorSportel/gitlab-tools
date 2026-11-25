@@ -54,6 +54,28 @@
             </div>
         </section>
     @endif
+    <section class="card issues" aria-labelledby="sprint-health-heading">
+        <h3 id="sprint-health-heading" class="section-title">Sprint health check</h3>
+        <p class="section-copy">An issue can appear in more than one category.</p>
+        @foreach([
+            'missing' => 'No story-point label',
+            'conflicting' => 'Multiple story-point labels',
+            'openCompleted' => 'Counted as completed and still open in GitLab',
+        ] as $category => $heading)
+            <details style="padding:12px 0;border-top:1px solid var(--line)">
+                <summary style="cursor:pointer">{{ $heading }} <span class="badge">{{ count($healthCheck[$category]) }}</span></summary>
+                @forelse($healthCheck[$category] as $issue)
+                    <div class="issue" style="margin-top:8px">
+                        <span>#{{ $issue['iid'] }}</span>
+                        <a href="{{ $issue['web_url'] }}" target="_blank" rel="noopener">{{ $issue['title'] }}</a>
+                        <span class="muted">{{ implode(', ', $issue['labels'] ?? []) }}</span>
+                    </div>
+                @empty
+                    <p class="muted">No matching issues.</p>
+                @endforelse
+            </details>
+        @endforeach
+    </section>
     <section class="card issues">
         <h3 class="section-title">Milestone scope</h3><p class="section-copy">{{ count($issues) }} issues</p>
         @foreach($issues as $issue)

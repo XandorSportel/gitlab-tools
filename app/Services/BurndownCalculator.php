@@ -7,6 +7,31 @@ use InvalidArgumentException;
 
 class BurndownCalculator
 {
+    private const string STORY_POINT_LABEL = '/^SP-(\d+(?:\.\d+)?)$/i';
+
+    /** @return array{missing: list<array>, conflicting: list<array>, openCompleted: list<array>} */
+    public function healthCheck(array $issues, array $completedLabels): array
+    {
+        $missing = $conflicting = $openCompleted = [];
+
+        foreach ($issues as $issue) {
+            $labels = $issue['labels'] ?? [];
+            $pointLabels = preg_grep(self::STORY_POINT_LABEL, $labels);
+
+            if ($pointLabels === []) {
+                $missing[] = $issue;
+            } elseif (count($pointLabels) > 1) {
+                $conflicting[] = $issue;
+            }
+
+            if (($issue['state'] ?? 'opened') !== 'closed' && $this->hasLabel($labels, $completedLabels)) {
+                $openCompleted[] = $issue;
+            }
+        }
+
+        return compact('missing', 'conflicting', 'openCompleted');
+    }
+
     /**
      * @param  array<int, string>  $completedLabels
      * @param  list<int>  $workdays
@@ -213,7 +238,7 @@ class BurndownCalculator
     private function storyPoints(array $labels): float
     {
         foreach ($labels as $label) {
-            if (preg_match('/^SP-(\d+(?:\.\d+)?)$/i', $label, $matches) === 1) {
+            if (preg_match(self::STORY_POINT_LABEL, $label, $matches) === 1) {
                 return (float) $matches[1];
             }
         }

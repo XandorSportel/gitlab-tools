@@ -9,6 +9,21 @@ use PHPUnit\Framework\TestCase;
 
 class BurndownCalculatorTest extends TestCase
 {
+    public function test_health_check_flags_missing_and_conflicting_estimates_and_open_completed_issues(): void
+    {
+        $missing = ['state' => 'opened', 'labels' => ['SP-invalid', 'in mr']];
+        $conflicting = ['state' => 'closed', 'labels' => ['sp-2', 'SP-3.5', 'In MR']];
+        $healthy = ['state' => 'opened', 'labels' => ['SP-0']];
+
+        $result = (new BurndownCalculator)->healthCheck([$missing, $conflicting, $healthy], ['In MR']);
+
+        $this->assertSame([
+            'missing' => [$missing],
+            'conflicting' => [$conflicting],
+            'openCompleted' => [$missing],
+        ], $result);
+    }
+
     public function test_ideal_line_stays_flat_on_non_workdays_but_actual_progress_is_shown(): void
     {
         CarbonImmutable::setTestNow('2026-11-09');

@@ -56,7 +56,9 @@ class BurndownController extends Controller
             return redirect()->route('burndown.index')->withErrors(['chart' => $e->getMessage()]);
         }
 
-        return view('chart', compact('milestoneData', 'issues', 'chart', 'metric', 'burndownSettings'));
+        $healthCheck = $calculator->healthCheck($issues, $burndownSettings['completedLabels']);
+
+        return view('chart', compact('milestoneData', 'issues', 'chart', 'metric', 'burndownSettings', 'healthCheck'));
     }
 
     private function client(): GitLabClient
