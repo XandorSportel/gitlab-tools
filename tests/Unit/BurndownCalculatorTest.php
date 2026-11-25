@@ -9,6 +9,24 @@ use PHPUnit\Framework\TestCase;
 
 class BurndownCalculatorTest extends TestCase
 {
+    public function test_retrospective_measures_planned_points_and_ignores_completions_after_the_due_date(): void
+    {
+        $milestone = ['start_date' => '2026-11-01', 'due_date' => '2026-11-05'];
+        $issues = [
+            ['created_at' => '2026-10-30', 'closed_at' => '2026-11-06', 'labels' => ['SP-5']],
+            ['created_at' => '2026-11-02', 'label_events' => [
+                ['created_at' => '2026-11-02', 'action' => 'add', 'label' => ['name' => 'SP-3']],
+                ['created_at' => '2026-11-05', 'action' => 'add', 'label' => ['name' => 'In MR']],
+                ['created_at' => '2026-11-06', 'action' => 'remove', 'label' => ['name' => 'In MR']],
+            ]],
+            ['created_at' => '2026-11-06', 'labels' => ['SP-8']],
+        ];
+
+        $result = (new BurndownCalculator)->retrospective($milestone, $issues, ['In MR']);
+
+        $this->assertSame(['planned' => 5.0, 'completed' => 3.0, 'remaining' => 5.0], $result);
+    }
+
     public function test_health_check_flags_missing_and_conflicting_estimates_and_open_completed_issues(): void
     {
         $missing = ['state' => 'opened', 'labels' => ['SP-invalid', 'in mr']];

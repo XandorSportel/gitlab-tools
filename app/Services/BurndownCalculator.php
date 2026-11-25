@@ -9,6 +9,33 @@ class BurndownCalculator
 {
     private const string STORY_POINT_LABEL = '/^SP-(\d+(?:\.\d+)?)$/i';
 
+    /** @return array{planned: float, completed: float, remaining: float} */
+    public function retrospective(array $milestone, array $issues, array $completedLabels): array
+    {
+        $start = $this->date($milestone['start_date'] ?? null, 'The milestone needs a start date.');
+        $due = $this->date($milestone['due_date'] ?? null, 'The milestone needs a due date.');
+        $planned = $completed = $remaining = 0.0;
+
+        foreach ($issues as $issue) {
+            $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
+            if ($created->gt($due)) {
+                continue;
+            }
+            if ($created->lte($start)) {
+                $planned += $this->valueAtDate($issue, 'story_points', $start);
+            }
+
+            $points = $this->valueAtDate($issue, 'story_points', $due);
+            if ($this->isCompletedAt($issue, $due, $completedLabels)) {
+                $completed += $points;
+            } else {
+                $remaining += $points;
+            }
+        }
+
+        return compact('planned', 'completed', 'remaining');
+    }
+
     /** @return array{missing: list<array>, conflicting: list<array>, openCompleted: list<array>} */
     public function healthCheck(array $issues, array $completedLabels): array
     {

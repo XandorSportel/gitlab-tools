@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\BurndownCalculator;
 use App\Services\GitLabClient;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,16 +35,7 @@ class BurndownController extends Controller
         try {
             $client = $this->client();
             $milestoneData = $client->milestone($this->project(), $milestone);
-            $issues = $client->milestoneIssues($this->project(), $milestone);
-            $issues = array_values(array_filter(
-                $issues,
-                fn (array $issue): bool => ! $this->hasConfiguredLabel($issue, config('services.gitlab.ignored_issue_labels')),
-            ));
-            $issues = array_map(function (array $issue) use ($client): array {
-                $issue['label_events'] = $client->issueLabelEvents($this->project(), $issue['iid']);
-
-                return $issue;
-            }, $issues);
+            $issues = $this->issuesWithHistory($client, $milestone);
             $burndownSettings = $request->user()->burndownSettings();
             $chart = $calculator->calculate(
                 $milestoneData,
@@ -59,6 +51,60 @@ class BurndownController extends Controller
         $healthCheck = $calculator->healthCheck($issues, $burndownSettings['completedLabels']);
 
         return view('chart', compact('milestoneData', 'issues', 'chart', 'metric', 'burndownSettings', 'healthCheck'));
+    }
+
+    public function retrospective(Request $request, BurndownCalculator $calculator): View
+    {
+        $validated = $request->validate([
+            'milestones' => ['sometimes', 'array', 'max:3'],
+            'milestones.*' => ['required', 'integer', 'min:1', 'distinct'],
+        ]);
+        $selected = array_map(intval(...), $validated['milestones'] ?? []);
+        $milestones = $rows = [];
+        $error = null;
+        $settings = $request->user()->burndownSettings();
+
+        try {
+            $client = $this->client();
+            $today = CarbonImmutable::today()->toDateString();
+            $milestones = array_filter($client->milestones($this->project()), fn (array $milestone): bool => isset($milestone['start_date'], $milestone['due_date'])
+                && $milestone['start_date'] <= $milestone['due_date']
+                && $milestone['due_date'] < $today
+            );
+            foreach ($milestones as $milestone) {
+                if (! in_array((int) $milestone['id'], $selected, true)) {
+                    continue;
+                }
+
+                try {
+                    $issues = $this->issuesWithHistory($client, (int) $milestone['id']);
+                    $rows[] = ['milestone' => $milestone, 'points' => $calculator->retrospective($milestone, $issues, $settings['completedLabels'])];
+                } catch (Throwable $exception) {
+                    report($exception);
+                    $rows[] = ['milestone' => $milestone, 'points' => null];
+                }
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+            $error = 'Unable to load milestones from GitLab.';
+        }
+
+        return view('retrospective', compact('milestones', 'rows', 'selected', 'settings', 'error'));
+    }
+
+    private function issuesWithHistory(GitLabClient $client, int $milestone): array
+    {
+        $project = $this->project();
+        $issues = array_filter(
+            $client->milestoneIssues($project, $milestone),
+            fn (array $issue): bool => ! $this->hasConfiguredLabel($issue, config('services.gitlab.ignored_issue_labels')),
+        );
+
+        return array_map(function (array $issue) use ($client, $project): array {
+            $issue['label_events'] = $client->issueLabelEvents($project, $issue['iid']);
+
+            return $issue;
+        }, array_values($issues));
     }
 
     private function client(): GitLabClient

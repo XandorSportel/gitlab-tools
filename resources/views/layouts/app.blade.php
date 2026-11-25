@@ -11,7 +11,10 @@
     <aside class="sidebar">
         <a class="logo" href="{{ route('burndown.index') }}"><span class="logo-mark">◆</span><span>GitLab Tools</span></a>
         <div class="nav-label">Tools</div>
-        <nav><a class="nav-link {{ request()->routeIs('burndown.*') ? 'active' : '' }}" href="{{ route('burndown.index') }}"><span class="nav-icon">↘</span><span>Burndown charts</span></a></nav>
+        <nav>
+            <a class="nav-link {{ request()->routeIs('burndown.*') ? 'active' : '' }}" href="{{ route('burndown.index') }}"><span class="nav-icon">↘</span><span>Burndown charts</span></a>
+            <a class="nav-link {{ request()->routeIs('retrospective.*') ? 'active' : '' }}" href="{{ route('retrospective.index') }}"><span class="nav-icon">↔</span><span>Sprint retrospective</span></a>
+        </nav>
         <details class="account">
             <summary><span class="avatar">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span><span class="account-text"><strong>{{ auth()->user()->name }}</strong><span>{{ auth()->user()->email }}</span></span><span>⋯</span></summary>
             <div class="account-menu"><a href="{{ route('profile') }}">Profile</a><a href="{{ route('settings') }}">Settings</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form></div>

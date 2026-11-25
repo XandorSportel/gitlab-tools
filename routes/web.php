@@ -15,6 +15,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [BurndownController::class, 'index'])->name('burndown.index');
+    Route::get('/retrospective', [BurndownController::class, 'retrospective'])->name('retrospective.index');
     Route::get('/chart/{milestone}', [BurndownController::class, 'show'])->whereNumber('milestone')->name('burndown.show');
     Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
     Route::patch('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
