@@ -9,8 +9,9 @@ class BurndownCalculator
 {
     /**
      * @param  array<int, string>  $completedLabels
+     * @param  list<int>  $workdays
      */
-    public function calculate(array $milestone, array $issues, string $metric = 'count', array $completedLabels = []): array
+    public function calculate(array $milestone, array $issues, string $metric = 'count', array $completedLabels = [], array $workdays = [1, 2, 3, 4, 5, 6, 7]): array
     {
         $start = $this->date($milestone['start_date'] ?? null, 'The milestone needs a start date.');
         $due = $this->date($milestone['due_date'] ?? null, 'The milestone needs a due date.');
@@ -29,11 +30,23 @@ class BurndownCalculator
         ));
 
         $labels = $actual = $ideal = [];
-        $days = max(1, $start->diffInDays($due));
+        $plannedWorkdays = 0;
+        for ($date = $start->addDay(); $date->lte($due); $date = $date->addDay()) {
+            if (in_array($date->dayOfWeekIso, $workdays, true)) {
+                $plannedWorkdays++;
+            }
+        }
 
-        for ($date = $start, $offset = 0; $date->lte($chartEnd); $date = $date->addDay(), $offset++) {
+        $elapsedWorkdays = 0;
+        for ($date = $start; $date->lte($chartEnd); $date = $date->addDay()) {
+            if ($date->gt($start) && $date->lte($due) && in_array($date->dayOfWeekIso, $workdays, true)) {
+                $elapsedWorkdays++;
+            }
+
             $labels[] = $date->format('M j');
-            $ideal[] = round(max(0, $initial * (1 - ($offset / $days))), 2);
+            $ideal[] = $date->gte($due)
+                ? 0.0
+                : round($initial * (1 - $elapsedWorkdays / max(1, $plannedWorkdays)), 2);
             $actual[] = $date->gt($today) ? null : array_sum(array_map(function (array $issue) use ($date, $metric, $completedLabels) {
                 $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
 

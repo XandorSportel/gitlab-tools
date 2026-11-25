@@ -9,6 +9,19 @@ use PHPUnit\Framework\TestCase;
 
 class BurndownCalculatorTest extends TestCase
 {
+    public function test_ideal_line_stays_flat_on_non_workdays_but_actual_progress_is_shown(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-09');
+        $result = (new BurndownCalculator)->calculate(
+            ['start_date' => '2026-11-05', 'due_date' => '2026-11-09'],
+            [['created_at' => '2026-11-05', 'closed_at' => '2026-11-07', 'state' => 'closed']],
+            workdays: [1, 2, 3, 4, 5],
+        );
+
+        $this->assertSame([1.0, 0.5, 0.5, 0.5, 0.0], $result['ideal']);
+        $this->assertSame([1, 1, 0, 0, 0], $result['actual']);
+    }
+
     protected function tearDown(): void
     {
         CarbonImmutable::setTestNow();

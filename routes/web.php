@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\BurndownController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BurndownController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -20,4 +20,5 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
     Route::get('/settings', [AccountController::class, 'settings'])->name('settings');
+    Route::patch('/settings/burndown', [AccountController::class, 'updateBurndownSettings'])->name('settings.burndown.update');
 });
