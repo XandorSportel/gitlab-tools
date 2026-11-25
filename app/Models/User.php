@@ -14,7 +14,21 @@ use Illuminate\Notifications\Notifiable;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    public const array DEFAULT_BURNDOWN_WORKDAYS = [1, 2, 3, 4, 5, 6, 7];
+    public const array WEEKDAY_NAMES = [
+        1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday',
+        5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
+    ];
+
+    /** @return array{workdays: list<int>, completedLabels: list<string>, personalWorkdays: bool, personalLabels: bool} */
+    public function burndownSettings(): array
+    {
+        return [
+            'workdays' => $this->burndown_workdays ?? config('services.gitlab.workdays'),
+            'completedLabels' => $this->burndown_completed_labels ?? config('services.gitlab.completed_labels'),
+            'personalWorkdays' => $this->burndown_workdays !== null,
+            'personalLabels' => $this->burndown_completed_labels !== null,
+        ];
+    }
 
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;

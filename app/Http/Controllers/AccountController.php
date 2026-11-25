@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -40,8 +39,9 @@ class AccountController extends Controller
     public function settings(Request $request): View
     {
         return view('account.settings', [
-            'workdays' => $request->user()->burndown_workdays ?? User::DEFAULT_BURNDOWN_WORKDAYS,
-            'completedLabels' => $request->user()->burndown_completed_labels ?? config('services.gitlab.completed_labels'),
+            ...$request->user()->burndownSettings(),
+            'projectWorkdays' => config('services.gitlab.workdays'),
+            'projectCompletedLabels' => config('services.gitlab.completed_labels'),
             'gitlab' => [
                 'url' => config('services.gitlab.url'),
                 'project' => config('services.gitlab.project'),
@@ -67,5 +67,15 @@ class AccountController extends Controller
         $user->save();
 
         return back()->with('status', 'Burndown settings updated.');
+    }
+
+    public function resetBurndownSettings(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $user->burndown_workdays = null;
+        $user->burndown_completed_labels = null;
+        $user->save();
+
+        return back()->with('status', 'Project defaults restored.');
     }
 }

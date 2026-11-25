@@ -7,6 +7,10 @@ return [
         'project' => env('GITLAB_PROJECT'),
         'token' => env('GITLAB_TOKEN'),
         'completed_labels' => array_values(array_filter(array_map('trim', explode(',', env('GITLAB_COMPLETED_LABELS', 'In MR'))))),
+        'workdays' => array_values(array_map('intval', array_intersect(
+            ['1', '2', '3', '4', '5', '6', '7'],
+            array_map('trim', explode(',', (string) env('GITLAB_WORKDAYS', '1,2,3,4,5,6,7'))),
+        ))) ?: [1, 2, 3, 4, 5, 6, 7],
         'ignored_issue_labels' => array_values(array_filter(array_map('trim', explode(',', env('GITLAB_IGNORED_ISSUE_LABELS', 'Epic'))))),
     ],
 

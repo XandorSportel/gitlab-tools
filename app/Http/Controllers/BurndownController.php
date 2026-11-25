@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\BurndownCalculator;
 use App\Services\GitLabClient;
 use Illuminate\Http\RedirectResponse;
@@ -45,18 +44,19 @@ class BurndownController extends Controller
 
                 return $issue;
             }, $issues);
+            $burndownSettings = $request->user()->burndownSettings();
             $chart = $calculator->calculate(
                 $milestoneData,
                 $issues,
                 $metric,
-                $request->user()->burndown_completed_labels ?? config('services.gitlab.completed_labels'),
-                $request->user()->burndown_workdays ?? User::DEFAULT_BURNDOWN_WORKDAYS,
+                $burndownSettings['completedLabels'],
+                $burndownSettings['workdays'],
             );
         } catch (Throwable $e) {
             return redirect()->route('burndown.index')->withErrors(['chart' => $e->getMessage()]);
         }
 
-        return view('chart', compact('milestoneData', 'issues', 'chart', 'metric'));
+        return view('chart', compact('milestoneData', 'issues', 'chart', 'metric', 'burndownSettings'));
     }
 
     private function client(): GitLabClient

@@ -15,6 +15,13 @@
     </div>
     <section class="card">
         <h3 class="section-title">Burndown trajectory</h3><p class="section-copy">Daily remaining work compared with the ideal trajectory.</p>
+        <div class="section-copy">
+            Working days ({{ $burndownSettings['personalWorkdays'] ? 'personal' : 'project default' }}):
+            {{ implode(', ', array_intersect_key(\App\Models\User::WEEKDAY_NAMES, array_flip($burndownSettings['workdays']))) }}<br>
+            Completion labels ({{ $burndownSettings['personalLabels'] ? 'personal' : 'project default' }}):
+            {{ implode(', ', $burndownSettings['completedLabels']) ?: 'Closed issues only' }}.
+            <a href="{{ route('settings') }}">Settings</a>
+        </div>
         <div class="chart-wrap"><svg id="burndown" class="chart" role="img" aria-label="Burndown chart"></svg></div>
         <div class="legend"><span><i class="dot" style="background:#6d45e6"></i>Actual remaining</span><span><i class="dot" style="background:#c8cedb"></i>Ideal trajectory</span></div>
     </section>

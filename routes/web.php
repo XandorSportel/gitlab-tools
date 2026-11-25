@@ -21,4 +21,5 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
     Route::get('/settings', [AccountController::class, 'settings'])->name('settings');
     Route::patch('/settings/burndown', [AccountController::class, 'updateBurndownSettings'])->name('settings.burndown.update');
+    Route::delete('/settings/burndown', [AccountController::class, 'resetBurndownSettings'])->name('settings.burndown.reset');
 });
