@@ -18,6 +18,35 @@
         <div class="chart-wrap"><svg id="burndown" class="chart" role="img" aria-label="Burndown chart"></svg></div>
         <div class="legend"><span><i class="dot" style="background:#6d45e6"></i>Actual remaining</span><span><i class="dot" style="background:#c8cedb"></i>Ideal trajectory</span></div>
     </section>
+    @if($chart['dailyChanges'] !== [])
+        <section class="card issues">
+            <h3 class="section-title">Daily changes</h3>
+            <p class="section-copy">Select a chart point or choose a date to see changes between daily snapshots.</p>
+            <label for="burndown-day">Date</label>
+            <select id="burndown-day">
+                @foreach($chart['dailyChanges'] as $day => $changes)
+                    <option value="{{ $day }}" @selected($loop->last)>{{ $chart['labels'][$day] }}</option>
+                @endforeach
+            </select>
+            <div aria-live="polite">
+                @foreach($chart['dailyChanges'] as $day => $changes)
+                    <div data-day-details="{{ $day }}" @if(!$loop->last) hidden @endif>
+                        <p>Actual remaining: {{ $chart['actual'][$day] }}</p>
+                        @forelse($changes as $change)
+                            @php($changedIssue = $issues[$change['issue']])
+                            <div class="issue">
+                                <span>#{{ $changedIssue['iid'] }}</span>
+                                <a href="{{ $changedIssue['web_url'] }}" target="_blank" rel="noopener">{{ $changedIssue['title'] }}</a>
+                                <span>{{ implode(' · ', $change['events']) }}</span>
+                            </div>
+                        @empty
+                            <p class="muted">No issue changes recorded for this date.</p>
+                        @endforelse
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
     <section class="card issues">
         <h3 class="section-title">Milestone scope</h3><p class="section-copy">{{ count($issues) }} issues</p>
         @foreach($issues as $issue)
@@ -28,7 +57,25 @@
 @push('scripts')
 <script>
 (() => {
-  const data = @json($chart), svg = document.getElementById('burndown');
+  const data = {{ Illuminate\Support\Js::from(\Illuminate\Support\Arr::only($chart, ['labels', 'ideal', 'actual'])) }};
+  const svg = document.getElementById('burndown');
+  const daySelect = document.getElementById('burndown-day');
+  const dayDetails = document.querySelectorAll('[data-day-details]');
+
+  const showDay = (day) => {
+    daySelect.value = day;
+    dayDetails.forEach((details) => {
+      details.hidden = details.dataset.dayDetails !== day;
+    });
+  };
+  daySelect?.addEventListener('change', () => showDay(daySelect.value));
+  svg.addEventListener('click', (event) => {
+    const point = event.target.closest('[data-chart-day]');
+    if (point && daySelect) {
+      showDay(point.dataset.chartDay);
+      daySelect.focus();
+    }
+  });
   const draw = () => {
     const w = svg.clientWidth || 900, h = 390, pad = {l:48,r:18,t:32,b:45};
     const max = Math.max(1, ...data.ideal, ...data.actual.filter(v => v !== null));
@@ -39,7 +86,15 @@
     for(let i=0;i<=4;i++){ const value=max*(1-i/4), yy=pad.t+i*(h-pad.t-pad.b)/4; html+=`<line x1="${pad.l}" y1="${yy}" x2="${w-pad.r}" y2="${yy}" stroke="#e9ecf2"/><text x="${pad.l-10}" y="${yy+4}" text-anchor="end" fill="#7a8497" font-size="11">${Math.round(value*10)/10}</text>` }
     const ticks = Math.min(6,data.labels.length); for(let t=0;t<ticks;t++){const i=Math.round(t*(data.labels.length-1)/Math.max(1,ticks-1));html+=`<text x="${x(i)}" y="${h-16}" text-anchor="middle" fill="#7a8497" font-size="11">${data.labels[i]}</text>`}
     html += `<path d="${path(data.ideal)}" fill="none" stroke="#c8cedb" stroke-width="2" stroke-dasharray="6 6"/><path d="${path(data.actual)}" fill="none" stroke="#6d45e6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
-    data.actual.forEach((v,i)=>{if(v!==null)html+=`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="#fff" stroke="#6d45e6" stroke-width="2"><title>${data.labels[i]}: ${v}</title></circle>`});
+    data.actual.forEach((v, i) => {
+      if (v !== null) {
+        html += `<g data-chart-day="${i}" style="cursor:pointer">
+          <circle cx="${x(i)}" cy="${y(v)}" r="12" fill="transparent"/>
+          <circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="#fff" stroke="#6d45e6" stroke-width="2"/>
+          <title>${data.labels[i]}: ${v}</title>
+        </g>`;
+      }
+    });
     svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.innerHTML=html;
   }; draw(); window.addEventListener('resize',draw);
 })();

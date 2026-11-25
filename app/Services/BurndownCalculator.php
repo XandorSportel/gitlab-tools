@@ -29,7 +29,7 @@ class BurndownCalculator
             $issues
         ));
 
-        $labels = $actual = $ideal = [];
+        $labels = $actual = $ideal = $dailyChanges = [];
         $plannedWorkdays = 0;
         for ($date = $start->addDay(); $date->lte($due); $date = $date->addDay()) {
             if (in_array($date->dayOfWeekIso, $workdays, true)) {
@@ -47,13 +47,30 @@ class BurndownCalculator
             $ideal[] = $date->gte($due)
                 ? 0.0
                 : round($initial * (1 - $elapsedWorkdays / max(1, $plannedWorkdays)), 2);
-            $actual[] = $date->gt($today) ? null : array_sum(array_map(function (array $issue) use ($date, $metric, $completedLabels) {
-                $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
+            if ($date->gt($today)) {
+                $actual[] = null;
 
-                return $created->lte($date) && ! $this->isCompletedAt($issue, $date, $completedLabels)
-                    ? $this->valueAtDate($issue, $metric, $date)
-                    : 0;
-            }, $issues));
+                continue;
+            }
+
+            $previousDate = $date->subDay();
+            $remainingOnDate = 0;
+            $changes = [];
+            foreach ($issues as $index => $issue) {
+                $created = CarbonImmutable::parse($issue['created_at'])->startOfDay();
+                if ($created->gt($date)) {
+                    continue;
+                }
+
+                $completed = $this->isCompletedAt($issue, $date, $completedLabels);
+                $remainingOnDate += $completed ? 0 : $this->valueAtDate($issue, $metric, $date);
+                $events = $this->dailyIssueChanges($issue, $date, $previousDate, $created, $completedLabels);
+                if ($events !== []) {
+                    $changes[] = ['issue' => $index, 'events' => $events];
+                }
+            }
+            $actual[] = $remainingOnDate;
+            $dailyChanges[] = $changes;
         }
 
         $remaining = array_sum(array_map(
@@ -61,7 +78,7 @@ class BurndownCalculator
             $issues,
         ));
 
-        return compact('labels', 'actual', 'ideal') + [
+        return compact('labels', 'actual', 'ideal', 'dailyChanges') + [
             'initial' => $initial,
             'total' => $totalAtEnd,
             'remaining' => $remaining,
@@ -69,6 +86,35 @@ class BurndownCalculator
             'scope_added' => max(0, $totalAtEnd - $initial),
             'metric' => $metric,
         ];
+    }
+
+    /** @return list<string> */
+    private function dailyIssueChanges(array $issue, CarbonImmutable $date, CarbonImmutable $previousDate, CarbonImmutable $created, array $completedLabels): array
+    {
+        $events = [];
+        $labels = $this->labelsAt($issue, $date);
+        $previousLabels = $created->eq($date) ? [] : $this->labelsAt($issue, $previousDate);
+
+        if ($created->eq($date)) {
+            $events[] = 'Issue created';
+        }
+        if (isset($issue['closed_at']) && CarbonImmutable::parse($issue['closed_at'])->startOfDay()->eq($date)) {
+            $events[] = 'Issue closed';
+        }
+        foreach ($completedLabels as $label) {
+            $wasApplied = $this->hasLabel($previousLabels, [$label]);
+            $isApplied = $this->hasLabel($labels, [$label]);
+            if ($wasApplied !== $isApplied) {
+                $events[] = ($isApplied ? 'Label added: ' : 'Label removed: ').$label;
+            }
+        }
+        $previousPoints = $this->storyPoints($previousLabels);
+        $points = $this->storyPoints($labels);
+        if ($previousPoints !== $points) {
+            $events[] = "Story points: {$previousPoints} → {$points}";
+        }
+
+        return $events;
     }
 
     private function value(array $issue, string $metric): int|float

@@ -43,6 +43,12 @@ class BurndownCalculatorTest extends TestCase
         $this->assertSame(1, $result['scope_added']);
         $this->assertSame([1, 2, 1, 1, null], $result['actual']);
         $this->assertSame(1, $result['remaining']);
+        $this->assertSame([
+            [],
+            [['issue' => 1, 'events' => ['Issue created']]],
+            [['issue' => 0, 'events' => ['Issue closed']]],
+            [],
+        ], $result['dailyChanges']);
     }
 
     public function test_it_uses_issue_weights(): void
@@ -145,5 +151,7 @@ class BurndownCalculatorTest extends TestCase
         $this->assertSame(0.0, $result['completed']);
         $this->assertSame(2.0, $result['remaining']);
         $this->assertSame([2.0, 2.0, 0, 0, 2.0], $result['actual']);
+        $this->assertSame([['issue' => 0, 'events' => ['Label added: In MR']]], $result['dailyChanges'][2]);
+        $this->assertSame([['issue' => 0, 'events' => ['Label removed: In MR']]], $result['dailyChanges'][4]);
     }
 }
