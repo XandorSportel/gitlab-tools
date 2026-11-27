@@ -17,6 +17,7 @@ class AdminAccess
         'roles' => ['label' => 'Roles', 'permission' => 'admin roles'],
         'permissions' => ['label' => 'Permissions', 'permission' => 'admin permissions'],
         'tags' => ['label' => 'Planning tags', 'permission' => 'admin planning tags'],
+        'task-templates' => ['label' => 'Standard tasks', 'permission' => 'admin planning task templates'],
     ];
 
     public function canManageUser(User $actor, User $user): bool

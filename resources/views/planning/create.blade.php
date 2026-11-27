@@ -10,7 +10,21 @@
             <p class="section-copy">#{{ $gitLabIssue['iid'] }} {{ $gitLabIssue['title'] }}</p>
         @endif
 
+        @if ($taskTemplates->isNotEmpty())
+            <details class="mb-4">
+                <summary class="cursor-pointer text-sm font-semibold">Choose a standard task</summary>
+                <ul class="mt-3 flex flex-wrap gap-2">
+                    @foreach ($taskTemplates as $template)
+                        <li>
+                            <a class="button secondary" href="{{ route('planning.create', ['issue' => $gitLabIssue['id'], 'template' => $template->id]) }}#title">{{ $template->title }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </details>
+        @endif
+
         @include('planning.task-form', [
+            'suggestedTitle' => $suggestedTitle,
             'action' => $gitLabIssue ? route('planning.store', $gitLabIssue['id']) : route('planning.tasks.store'),
             'task' => null,
             'selectedAssigneeIds' => [],

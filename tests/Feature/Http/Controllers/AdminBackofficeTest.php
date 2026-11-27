@@ -4,6 +4,7 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\PlanningIssue;
 use App\Models\PlanningTag;
+use App\Models\PlanningTaskTemplate;
 use App\Models\User;
 use App\Services\AdminAccess;
 use Database\Seeders\AdminUserSeeder;
@@ -41,6 +42,7 @@ class AdminBackofficeTest extends TestCase
     #[TestWith(['roles', 'admin roles'])]
     #[TestWith(['permissions', 'admin permissions'])]
     #[TestWith(['tags', 'admin planning tags'])]
+    #[TestWith(['task-templates', 'admin planning task templates'])]
     public function test_each_admin_page_requires_its_own_permission(string $page, string $permission): void
     {
         $this->withoutVite();
@@ -149,6 +151,28 @@ class AdminBackofficeTest extends TestCase
         $this->delete(route('admin.permissions.destroy', $permission))->assertForbidden();
         $this->delete(route('admin.permissions.destroy', $custom))->assertRedirect(route('admin.permissions.index'));
         $this->assertDatabaseMissing('permissions', ['id' => $custom->id]);
+    }
+
+    public function test_template_admin_can_add_rename_and_delete_standard_tasks(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->create()
+            ->givePermissionTo(Permission::findOrCreate('admin planning task templates', 'web'));
+        $index = route('admin.task-templates.index');
+
+        $this->actingAs($admin)->post(route('admin.task-templates.store'), ['title' => 'Testen op tablets'])
+            ->assertRedirect($index);
+
+        $template = PlanningTaskTemplate::query()->where('title', 'Testen op tablets')->sole();
+        $this->get($index)->assertOk()->assertSeeHtml('value="Testen op tablets"');
+
+        $update = route('admin.task-templates.update', $template);
+        $this->from($index)->patch($update, ['title' => 'Testen Windows'])->assertSessionHasErrors('title');
+        $this->patch($update, ['title' => 'Testen op Android-tablets'])->assertRedirect($index);
+        $this->assertSame('Testen op Android-tablets', $template->fresh()->title);
+
+        $this->delete(route('admin.task-templates.destroy', $template))->assertRedirect($index);
+        $this->assertModelMissing($template);
     }
 
     public function test_tag_admin_can_create_rename_and_delete_tags_across_issues(): void

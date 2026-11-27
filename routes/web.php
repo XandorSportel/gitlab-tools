@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PlanningTagController;
+use App\Http\Controllers\Admin\PlanningTaskTemplateController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
@@ -68,6 +69,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:admin permissions');
         Route::resource('tags', PlanningTagController::class)->only(['index', 'store', 'update', 'destroy'])
             ->middleware('can:admin planning tags');
+        Route::resource('task-templates', PlanningTaskTemplateController::class)->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['task-templates' => 'template'])->middleware('can:admin planning task templates');
     });
     Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
     Route::patch('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');

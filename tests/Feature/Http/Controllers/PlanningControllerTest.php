@@ -4,6 +4,7 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\PlanningIssue;
 use App\Models\PlanningTask;
+use App\Models\PlanningTaskTemplate;
 use App\Models\User;
 use Database\Factories\PlanningTaskFactory;
 use Database\Seeders\PlanningPermissionSeeder;
@@ -48,6 +49,39 @@ class PlanningControllerTest extends TestCase
 
         $this->post(route('planning.store', 42), ['title' => 'Write attempt'])->assertForbidden();
         $this->assertDatabaseMissing('planning_tasks', ['title' => 'Write attempt']);
+    }
+
+    public function test_issue_task_templates_prefill_an_editable_title_without_creating_a_task(): void
+    {
+        $this->withoutVite();
+        $this->prepareIssue();
+        $planner = User::factory()->create(['planning_milestone_id' => 10])
+            ->givePermissionTo('view planning', 'create planning tasks');
+        $issueForm = route('planning.create', 42);
+
+        $this->actingAs($planner)->get($issueForm)->assertOk()->assertSeeText([
+            'Design sessie uitvoeren', 'Testen Windows', 'Testen Linux', 'Testen MacOS', 'Testen Android', 'Testen iOS',
+        ]);
+
+        $template = PlanningTaskTemplate::query()->where('title', 'Testen Linux')->sole();
+        $template->update(['title' => 'Testen Linux op Debian']);
+
+        $this->get(route('planning.create', ['issue' => 42, 'template' => $template->id]))
+            ->assertOk()
+            ->assertSeeHtml('name="title" value="Testen Linux op Debian"');
+        $this->get(route('planning.create', ['issue' => 42, 'template' => 'Unknown task']))
+            ->assertSeeHtml('name="title" value=""');
+        $this->get(route('planning.tasks.create', ['template' => $template->id]))
+            ->assertDontSeeText('Choose a standard task')
+            ->assertSeeHtml('name="title" value=""');
+
+        $this->assertDatabaseEmpty('planning_tasks');
+        $this->post(route('planning.store', 42), ['title' => 'Testen Linux op Ubuntu'])
+            ->assertRedirect(route('planning.index'));
+        $this->assertDatabaseHas('planning_tasks', [
+            'title' => 'Testen Linux op Ubuntu',
+            'planning_issue_id' => $this->issue()->id,
+        ]);
     }
 
     public function test_planners_can_create_a_task_and_assign_multiple_users(): void

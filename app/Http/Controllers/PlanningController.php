@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlanningTask;
+use App\Models\PlanningTaskTemplate;
 use App\Models\User;
 use App\Services\PlanningSprint;
 use Illuminate\Database\Eloquent\Collection;
@@ -32,7 +33,13 @@ class PlanningController extends Controller
         $gitLabIssue = $issue === null ? null : $sprint->findIssue($request->user(), $issue);
         $assignableUsers = $this->assignableUsers();
 
-        return view('planning.create', compact('gitLabIssue', 'assignableUsers'));
+        $taskTemplates = $gitLabIssue === null ? collect() : PlanningTaskTemplate::query()->orderBy('id')->get();
+        $selectedTemplate = $request->query('template');
+        $suggestedTitle = $taskTemplates->first(
+            fn (PlanningTaskTemplate $template): bool => (string) $template->id === $selectedTemplate,
+        )?->title;
+
+        return view('planning.create', compact('gitLabIssue', 'assignableUsers', 'taskTemplates', 'suggestedTitle'));
     }
 
     public function store(Request $request, PlanningSprint $sprint, ?int $issue = null): RedirectResponse

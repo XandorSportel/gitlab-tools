@@ -1,5 +1,5 @@
 @php
-    $title = old('title', $task?->title);
+    $title = old('title', $task?->title ?? ($suggestedTitle ?? null));
     $description = old('description', $task?->description);
     $assigneeIds = old('assignee_ids', session()->hasOldInput() ? [] : $selectedAssigneeIds);
 @endphp

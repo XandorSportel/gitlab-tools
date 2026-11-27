@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlanningPermissionSeeder::class,
             PlanningTagSeeder::class,
+            PlanningTaskTemplateSeeder::class,
         ]);
     }
 }
