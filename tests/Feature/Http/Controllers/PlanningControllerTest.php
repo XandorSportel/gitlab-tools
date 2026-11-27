@@ -271,7 +271,7 @@ class PlanningControllerTest extends TestCase
         $this->get(route('planning.index'))->assertDontSeeText('Completed on');
     }
 
-    public function test_completed_tasks_are_collapsed_initially_and_paginate_independently(): void
+    public function test_issue_task_sections_start_collapsed_and_completed_tasks_paginate_independently(): void
     {
         $this->withoutVite();
         $this->prepareIssue();
@@ -288,12 +288,14 @@ class PlanningControllerTest extends TestCase
             'completed_at' => '2026-11-26 12:00:00',
         ]);
 
-        $this->actingAs($viewer)
+        $response = $this->actingAs($viewer)
             ->get(route('planning.index'))
             ->assertOk()
-            ->assertSeeInOrder(['Sprint issues', 'Newer open task', 'Oldest open task', 'Completed tasks', 'Recently completed task'])
+            ->assertSeeInOrder(['Sprint issues', 'Open tasks (21)', 'Newer open task', 'Oldest open task', 'Completed tasks (21)', 'Recently completed task'])
             ->assertDontSeeText('Earliest completed task')
             ->assertSee('completed_42=2#issue-7', false);
+
+        $this->assertMatchesRegularExpression('/<details class="[^"]+"\s*>\s*<summary class="[^"]+">Open tasks \(21\)<\/summary>/', $response->getContent());
 
         $this->get(route('planning.index', ['completed_42' => 2, 'q' => 'Sprint fixture']))
             ->assertOk()

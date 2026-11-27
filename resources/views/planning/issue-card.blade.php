@@ -52,9 +52,14 @@
         </details>
     @endcan
 
-    @foreach ($card['openTasks'] as $task)
-        @include('planning.task-card', ['task' => $task])
-    @endforeach
+    @if ($card['openTasks']->isNotEmpty())
+        <details class="mt-4 border-t border-zinc-200 pt-4">
+            <summary class="cursor-pointer text-sm font-semibold">Open tasks ({{ $card['openTasks']->count() }})</summary>
+            @foreach ($card['openTasks'] as $task)
+                @include('planning.task-card', ['task' => $task])
+            @endforeach
+        </details>
+    @endif
 
     @if ($card['completedCount'])
         <details class="mt-4 border-t border-zinc-200 pt-4" @if ($card['showCompleted']) open @endif>
