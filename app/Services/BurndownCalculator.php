@@ -81,7 +81,7 @@ class BurndownCalculator
             $issues
         ));
 
-        $labels = $actual = $ideal = $dailyChanges = [];
+        $labels = $actual = $ideal = $dailyChanges = $workingDays = [];
         $plannedWorkdays = 0;
         for ($date = $start->addDay(); $date->lte($due); $date = $date->addDay()) {
             if (in_array($date->dayOfWeekIso, $workdays, true)) {
@@ -91,7 +91,9 @@ class BurndownCalculator
 
         $elapsedWorkdays = 0;
         for ($date = $start; $date->lte($chartEnd); $date = $date->addDay()) {
-            if ($date->gt($start) && $date->lte($due) && in_array($date->dayOfWeekIso, $workdays, true)) {
+            $isWorkingDay = in_array($date->dayOfWeekIso, $workdays, true);
+            $workingDays[] = $isWorkingDay;
+            if ($date->gt($start) && $date->lte($due) && $isWorkingDay) {
                 $elapsedWorkdays++;
             }
 
@@ -130,7 +132,7 @@ class BurndownCalculator
             $issues,
         ));
 
-        return compact('labels', 'actual', 'ideal', 'dailyChanges') + [
+        return compact('labels', 'actual', 'ideal', 'dailyChanges', 'workingDays') + [
             'initial' => $initial,
             'total' => $totalAtEnd,
             'remaining' => $remaining,

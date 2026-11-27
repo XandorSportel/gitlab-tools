@@ -86,7 +86,7 @@
 @push('scripts')
 <script>
 (() => {
-  const data = {{ Illuminate\Support\Js::from(\Illuminate\Support\Arr::only($chart, ['labels', 'ideal', 'actual'])) }};
+  const data = {{ Illuminate\Support\Js::from(\Illuminate\Support\Arr::only($chart, ['labels', 'ideal', 'actual', 'workingDays'])) }};
   const svg = document.getElementById('burndown');
   const daySelect = document.getElementById('burndown-day');
   const dayDetails = document.querySelectorAll('[data-day-details]');
@@ -112,6 +112,14 @@
     const y = v => pad.t + (max-v) * (h-pad.t-pad.b) / max;
     const path = vals => vals.map((v,i) => v===null ? null : `${i && vals[i-1]!==null?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean).join(' ');
     let html = '';
+    data.workingDays.forEach((workingDay, index) => {
+      if (workingDay) {
+        return;
+      }
+      const left = x(Math.max(0, index - 1));
+      const right = data.workingDays.length === 1 ? w - pad.r : x(index);
+      html += `<rect x="${left}" y="${pad.t}" width="${right - left}" height="${h - pad.t - pad.b}" fill="#eef0f4"/>`;
+    });
     for(let i=0;i<=4;i++){ const value=max*(1-i/4), yy=pad.t+i*(h-pad.t-pad.b)/4; html+=`<line x1="${pad.l}" y1="${yy}" x2="${w-pad.r}" y2="${yy}" stroke="#e9ecf2"/><text x="${pad.l-10}" y="${yy+4}" text-anchor="end" fill="#7a8497" font-size="11">${Math.round(value*10)/10}</text>` }
     const ticks = Math.min(6,data.labels.length); for(let t=0;t<ticks;t++){const i=Math.round(t*(data.labels.length-1)/Math.max(1,ticks-1));html+=`<text x="${x(i)}" y="${h-16}" text-anchor="middle" fill="#7a8497" font-size="11">${data.labels[i]}</text>`}
     html += `<path d="${path(data.ideal)}" fill="none" stroke="#c8cedb" stroke-width="2" stroke-dasharray="6 6"/><path d="${path(data.actual)}" fill="none" stroke="#6d45e6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
