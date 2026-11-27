@@ -268,4 +268,45 @@ class PlanningControllerTest extends TestCase
         $this->assertNull($task->fresh()->completed_at);
         $this->get(route('planning.index'))->assertDontSeeText('Completed on');
     }
+
+    public function test_completed_tasks_are_collapsed_initially_and_paginate_independently(): void
+    {
+        $this->withoutVite();
+        $this->seed(PlanningPermissionSeeder::class);
+        $viewer = User::factory()->create()->givePermissionTo('view planning');
+
+        PlanningTask::factory()->recycle($viewer)->create(['title' => 'Oldest open task']);
+        PlanningTask::factory()->recycle($viewer)->count(20)->create(['title' => 'Newer open task']);
+        PlanningTask::factory()->recycle($viewer)->count(20)->create([
+            'title' => 'Recently completed task',
+            'completed_at' => '2026-11-27 12:00:00',
+        ]);
+        PlanningTask::factory()->recycle($viewer)->create([
+            'title' => 'Earliest completed task',
+            'completed_at' => '2026-11-26 12:00:00',
+        ]);
+
+        $this->actingAs($viewer)
+            ->get(route('planning.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Open tasks', 'Newer open task', 'Completed tasks', 'Recently completed task'])
+            ->assertDontSeeText('Oldest open task')
+            ->assertDontSeeText('Earliest completed task')
+            ->assertSee('id="completed-tasks" >', false)
+            ->assertSee('completed_page=2#completed-tasks', false);
+
+        $this->get(route('planning.index', ['completed_page' => 2]))
+            ->assertOk()
+            ->assertSee('id="completed-tasks"  open ', false)
+            ->assertSeeText('Newer open task')
+            ->assertSeeText('Earliest completed task')
+            ->assertDontSeeText('Recently completed task')
+            ->assertDontSeeText('Oldest open task');
+
+        $this->get(route('planning.index', ['page' => 2, 'completed_page' => 1]))
+            ->assertOk()
+            ->assertSeeText('Oldest open task')
+            ->assertSeeText('Recently completed task')
+            ->assertSee('page=2&amp;completed_page=2#completed-tasks', false);
+    }
 }

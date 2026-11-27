@@ -16,16 +16,27 @@ class PlanningController extends Controller
 {
     public function index(Request $request): View
     {
-        $tasks = PlanningTask::query()
-            ->with(['creator:id,name', 'assignees:id,name'])
+        $taskQuery = PlanningTask::query()->with(['creator:id,name', 'assignees:id,name']);
+
+        $openTasks = (clone $taskQuery)
+            ->whereNull('completed_at')
             ->orderByDesc('id')
-            ->simplePaginate(20);
+            ->simplePaginate(20)
+            ->withQueryString();
+
+        $completedTasks = $taskQuery
+            ->whereNotNull('completed_at')
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->simplePaginate(20, pageName: 'completed_page')
+            ->withQueryString()
+            ->fragment('completed-tasks');
 
         $assignableUsers = $request->user()->can('create planning tasks')
             ? $this->assignableUsers()
             : collect();
 
-        return view('planning', compact('tasks', 'assignableUsers'));
+        return view('planning', compact('openTasks', 'completedTasks', 'assignableUsers'));
     }
 
     public function store(Request $request): RedirectResponse

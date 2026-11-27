@@ -9,103 +9,31 @@
     @endif
 
     <div @class(['grid items-start gap-5', 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' => auth()->user()->can('create planning tasks')])>
-        <section class="card min-w-0" aria-labelledby="planning-tasks">
-            <h2 class="section-title" id="planning-tasks">Tasks</h2>
+        <div class="grid min-w-0 gap-5">
+            <section class="card min-w-0" aria-labelledby="open-tasks">
+                <h2 class="section-title" id="open-tasks">Open tasks</h2>
 
-            @forelse ($tasks as $task)
-                <article class="mt-4 border-t border-zinc-200 pt-4 [overflow-wrap:anywhere]">
-                    <div class="flex flex-wrap items-start justify-between gap-2">
-                        <h3 class="text-sm font-semibold">{{ $task->title }}</h3>
+                @forelse ($openTasks as $task)
+                    @include('planning.task-card', ['task' => $task])
+                @empty
+                    <p class="muted mt-3 text-sm">No open tasks.</p>
+                @endforelse
 
-                        @can('edit planning tasks')
-                            <form class="flex items-center gap-2" method="post" action="{{ route('planning.completion.update', $task) }}">
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="completed" value="0">
-                                <label class="mb-0 flex cursor-pointer items-center gap-2">
-                                    <input
-                                        class="w-auto! shrink-0 accent-orange-600 focus-visible:outline-2!"
-                                        type="checkbox"
-                                        name="completed"
-                                        value="1"
-                                        aria-label="Completed: {{ $task->title }}"
-                                        data-submit-on-change
-                                        @checked($task->completed_at !== null)
-                                    >
-                                    <span>Completed</span>
-                                </label>
-                                <noscript><button class="button secondary" type="submit">Save</button></noscript>
-                            </form>
-                        @endcan
-                    </div>
+                @include('planning.task-pagination', ['tasks' => $openTasks, 'label' => 'Open task pages'])
+            </section>
 
-                    @if ($task->completed_at)
-                        <p class="mt-2 text-sm text-green-700">
-                            Completed on <time datetime="{{ $task->completed_at->toDateString() }}">{{ $task->completed_at->format('d M Y') }}</time>
-                        </p>
-                    @endif
-                    @if ($task->description)
-                        <p class="mt-2 text-sm whitespace-pre-wrap">{{ $task->description }}</p>
-                    @endif
-                    <p class="muted mt-2 text-sm">
-                        Assigned to {{ $task->assignees->pluck('name')->join(', ') ?: 'no one' }}
-                    </p>
-                    @if ($task->creator)
-                        <p class="muted mt-1 text-xs">Added by {{ $task->creator->name }}</p>
-                    @endif
-                    @if ($task->gitlab_url || auth()->user()->canAny(['edit planning tasks', 'delete planning tasks']))
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            @if ($task->gitlab_url)
-                                <a class="button secondary" href="{{ $task->gitlab_url }}" target="_blank" rel="noopener noreferrer">Open in GitLab</a>
-                            @endif
-                            @can('edit planning tasks')
-                                <a class="button secondary" href="{{ route('planning.edit', $task) }}" aria-label="Edit {{ $task->title }}">Edit</a>
-                            @endcan
-                            @can('delete planning tasks')
-                                <button
-                                    class="button secondary text-red-700! hover:bg-red-50!"
-                                    type="button"
-                                    aria-label="Delete {{ $task->title }}"
-                                    aria-haspopup="dialog"
-                                    data-open-modal="delete-task-{{ $task->id }}"
-                                >Delete</button>
+            <details class="card min-w-0" id="completed-tasks" @if (request()->query->has('completed_page')) open @endif>
+                <summary class="cursor-pointer text-base font-semibold">Completed tasks</summary>
 
-                                <x-modal
-                                    :id="'delete-task-' . $task->id"
-                                    title="Delete task?"
-                                    :description="'“' . $task->title . '” and its assignments will be permanently deleted.'"
-                                >
-                                    <div class="mt-5 flex flex-wrap justify-end gap-2">
-                                        <form method="dialog">
-                                            <button class="button secondary" type="submit" autofocus>Cancel</button>
-                                        </form>
+                @forelse ($completedTasks as $task)
+                    @include('planning.task-card', ['task' => $task])
+                @empty
+                    <p class="muted mt-3 text-sm">No completed tasks.</p>
+                @endforelse
 
-                                        <form method="post" action="{{ route('planning.destroy', $task) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="button bg-red-700! hover:bg-red-800!" type="submit">Delete task</button>
-                                        </form>
-                                    </div>
-                                </x-modal>
-                            @endcan
-                        </div>
-                    @endif
-                </article>
-            @empty
-                <p class="muted mt-3 text-sm">No tasks yet.</p>
-            @endforelse
-
-            @if ($tasks->hasPages())
-                <nav class="mt-5 flex flex-wrap gap-2" aria-label="Task pages">
-                    @if ($tasks->previousPageUrl())
-                        <a class="button secondary" href="{{ $tasks->previousPageUrl() }}">Previous</a>
-                    @endif
-                    @if ($tasks->nextPageUrl())
-                        <a class="button secondary" href="{{ $tasks->nextPageUrl() }}">Next</a>
-                    @endif
-                </nav>
-            @endif
-        </section>
+                @include('planning.task-pagination', ['tasks' => $completedTasks, 'label' => 'Completed task pages'])
+            </details>
+        </div>
 
         @can('create planning tasks')
             <section class="card min-w-0" aria-labelledby="add-task">
