@@ -77,6 +77,35 @@ class PlanningBoardControllerTest extends TestCase
             ->assertDontSeeText('Login story');
     }
 
+    public function test_users_can_filter_issues_by_merge_status(): void
+    {
+        $this->seed(PlanningPermissionSeeder::class);
+        $this->fakeSprint();
+        $viewer = User::factory()->create(['planning_milestone_id' => 10])->givePermissionTo('view planning');
+        $issue = PlanningIssue::factory()->create(['gitlab_issue_id' => 70]);
+        $task = PlanningTask::factory()->for($issue, 'issue')->create();
+
+        $this->actingAs($viewer)->get(route('planning.index', ['merge_status' => 'ready']))
+            ->assertOk()
+            ->assertSeeText('Login story')
+            ->assertDontSeeText('Navigation story');
+
+        $task->forceFill(['completed_at' => now()])->save();
+        $this->get(route('planning.index', ['merge_status' => 'ready', 'q' => 'Navigation']))
+            ->assertSeeText('Navigation story')
+            ->assertDontSeeText('Login story');
+
+        $tag = PlanningTag::factory()->create();
+        $issue->tags()->attach($tag);
+
+        $this->get(route('planning.index', ['merge_status' => 'action-needed', 'tag' => $tag->name]))
+            ->assertSeeText('Navigation story')
+            ->assertDontSeeText('Login story');
+
+        $this->get(route('planning.index', ['merge_status' => 'ready', 'q' => 'Navigation']))
+            ->assertSeeText('No issues match these filters.');
+    }
+
     public function test_issues_paginate_in_groups_of_ten_after_search_and_tag_filters(): void
     {
         $this->freezeTime();
@@ -101,7 +130,7 @@ class PlanningBoardControllerTest extends TestCase
         Http::preventStrayRequests();
         Http::fake(['https://gitlab.example.com/api/v4/projects/123/milestones/10/issues?*' => Http::response($issues)]);
 
-        $filters = ['q' => 'Matching', 'tag' => 'Design Session'];
+        $filters = ['q' => 'Matching', 'tag' => 'Design Session', 'merge_status' => 'action-needed'];
         $this->actingAs($viewer)->get(route('planning.index', $filters))
             ->assertOk()
             ->assertSeeText('Matching issue 03')
@@ -111,15 +140,15 @@ class PlanningBoardControllerTest extends TestCase
             ->assertDontSeeText('Different title')
             ->assertSee('aria-current="page">1</span>', false)
             ->assertSeeText('Showing 10 of 21')
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;page=3', false)
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;page=2', false);
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=3', false)
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=2', false);
 
         $this->get(route('planning.index', [...$filters, 'page' => 2]))
             ->assertOk()
             ->assertSeeText('Matching issue 13')
             ->assertDontSeeText('Matching issue 12')
             ->assertSee('aria-current="page">2</span>', false)
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;page=1', false);
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=1', false);
 
         $this->get(route('planning.index', [...$filters, 'page' => 3]))
             ->assertOk()
@@ -191,21 +220,21 @@ class PlanningBoardControllerTest extends TestCase
         $this->assertSame(['Design Session', 'Requires testing'], $issue->tags()->pluck('planning_tags.name')->all());
         $this->get(route('planning.index', ['tag' => 'Requires testing']))
             ->assertSeeText('Navigation story')
-            ->assertSeeText('Action needed')
-            ->assertDontSeeText('Ready to merge')
+            ->assertSee('>Action needed</p>', false)
+            ->assertDontSee('>Ready to merge</p>', false)
             ->assertDontSeeText('Login story');
 
         PlanningTask::factory()->for($issue, 'issue')->create(['completed_at' => now()]);
         $this->get(route('planning.index', ['tag' => 'Requires testing']))
-            ->assertSeeText('Action needed')
-            ->assertDontSeeText('Ready to merge');
+            ->assertSee('>Action needed</p>', false)
+            ->assertDontSee('>Ready to merge</p>', false);
 
         $this->patch(route('planning.tags.update', 70), [])
             ->assertRedirect(route('planning.index'));
         $this->assertSame([], $issue->tags()->pluck('planning_tags.name')->all());
         $this->get(route('planning.index', ['q' => '#7']))
-            ->assertSeeText('Ready to merge')
-            ->assertDontSeeText('Action needed');
+            ->assertSee('>Ready to merge</p>', false)
+            ->assertDontSee('>Action needed</p>', false);
 
         Http::assertNotSent(fn ($request): bool => $request->method() !== 'GET');
     }

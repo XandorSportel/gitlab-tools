@@ -23,10 +23,13 @@ class PlanningBoardController extends Controller
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'tag' => ['nullable', 'string', 'max:50'],
+            'merge_status' => ['nullable', 'string', 'in:ready,action-needed'],
         ]);
 
         $search = $filters['q'] ?? '';
         $selectedTag = $filters['tag'] ?? '';
+        $mergeStatus = $filters['merge_status'] ?? '';
+        $hasFilters = $search !== '' || $selectedTag !== '' || $mergeStatus !== '';
         $milestoneSelected = $request->user()->planning_milestone_id !== null;
         $error = null;
 
@@ -53,12 +56,16 @@ class PlanningBoardController extends Controller
             ? PlanningTag::query()->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        $matchingIssues = collect($issues)->filter(function (array $issue) use ($localIssues, $search, $selectedTag): bool {
+        $matchingIssues = collect($issues)->filter(function (array $issue) use ($localIssues, $search, $selectedTag, $mergeStatus): bool {
             $localIssue = $localIssues->get($issue['id']);
 
             if ($selectedTag !== '' && ! $localIssue?->tags->contains(
                 fn (PlanningTag $tag): bool => mb_strtolower($tag->name) === mb_strtolower($selectedTag),
             )) {
+                return false;
+            }
+
+            if ($mergeStatus !== '' && $this->needsAction($localIssue) !== ($mergeStatus === 'action-needed')) {
                 return false;
             }
 
@@ -105,7 +112,7 @@ class PlanningBoardController extends Controller
             return [
                 'issue' => $issue,
                 'tags' => $issueTags,
-                'needsAction' => $openTasks->isNotEmpty() || $issueTags !== [],
+                'needsAction' => $this->needsAction($localIssue),
                 'tagIds' => $localIssue?->tags->modelKeys() ?? [],
                 'openTasks' => $openTasks,
                 'completedTasks' => $completedPage,
@@ -114,7 +121,7 @@ class PlanningBoardController extends Controller
             ];
         });
 
-        return view('planning.board', compact('cards', 'tags', 'availableTags', 'search', 'selectedTag', 'milestoneSelected', 'error'));
+        return view('planning.board', compact('cards', 'tags', 'availableTags', 'search', 'selectedTag', 'mergeStatus', 'hasFilters', 'milestoneSelected', 'error'));
     }
 
     public function updateTags(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse
@@ -141,6 +148,12 @@ class PlanningBoardController extends Controller
         });
 
         return redirect()->route('planning.index')->with('status', 'Issue tags updated.');
+    }
+
+    private function needsAction(?PlanningIssue $issue): bool
+    {
+        return $issue !== null && ($issue->tags->isNotEmpty()
+            || $issue->tasks->contains(fn (PlanningTask $task): bool => $task->completed_at === null));
     }
 
     /** @param array{id: int, iid: int, title: string, url: ?string, updatedAt: int} $issue */

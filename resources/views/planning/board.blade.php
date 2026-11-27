@@ -38,8 +38,16 @@
                     @endforeach
                 </select>
             </div>
+            <div class="min-w-0 flex-1 basis-40">
+                <label for="planning-merge-status">Merge status</label>
+                <select id="planning-merge-status" name="merge_status">
+                    <option value="">All statuses</option>
+                    <option value="ready" @selected($mergeStatus === 'ready')>Ready to merge</option>
+                    <option value="action-needed" @selected($mergeStatus === 'action-needed')>Action needed</option>
+                </select>
+            </div>
             <button class="primary" type="submit">Filter</button>
-            @if ($search !== '' || $selectedTag !== '')
+            @if ($hasFilters)
                 <a class="button secondary" href="{{ route('planning.index') }}">Clear</a>
             @endif
         </form>
@@ -48,7 +56,7 @@
             @forelse ($cards as $card)
                 @include('planning.issue-card', ['card' => $card, 'availableTags' => $availableTags])
             @empty
-                <p class="card muted">{{ $search !== '' || $selectedTag !== '' ? 'No issues match these filters.' : 'No open issues in this sprint.' }}</p>
+                <p class="card muted">{{ $hasFilters ? 'No issues match these filters.' : 'No open issues in this sprint.' }}</p>
             @endforelse
         </div>
 

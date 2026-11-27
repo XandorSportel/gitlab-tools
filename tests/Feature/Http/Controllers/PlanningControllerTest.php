@@ -261,7 +261,7 @@ class PlanningControllerTest extends TestCase
         $this->get(route('planning.index'))
             ->assertSee('datetime="2026-11-27"', false)
             ->assertSeeText('27 Nov 2026')
-            ->assertSeeText('Ready to merge');
+            ->assertSee('>Ready to merge</p>', false);
 
         $this->travel(1)->day();
         $this->patch(route('planning.completion.update', $task), ['completed' => '1'])
