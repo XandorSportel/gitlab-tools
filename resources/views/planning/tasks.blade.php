@@ -26,7 +26,7 @@
 
         <section class="card" aria-labelledby="completed-tasks">
             <details open>
-                <summary class="cursor-pointer">
+                <summary class="disclosure-summary cursor-pointer"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i>
                     <h2 class="section-title inline" id="completed-tasks">Completed tasks ({{ $completedTasks->total() }})</h2>
                 </summary>
 

@@ -329,7 +329,7 @@ class PlanningControllerTest extends TestCase
             ->assertDontSeeText('Earliest completed task')
             ->assertSee('completed_42=2#issue-7', false);
 
-        $this->assertMatchesRegularExpression('/<details class="[^"]+"\s*>\s*<summary class="[^"]+">Open tasks \(21\)<\/summary>/', $response->getContent());
+        $this->assertMatchesRegularExpression('/<details class="[^"]+"\s*>\s*<summary class="[^"]+">(?:<i [^>]+><\/i>\s*)?Open tasks \(21\)<\/summary>/', $response->getContent());
 
         $this->get(route('planning.index', ['completed_42' => 2, 'q' => 'Sprint fixture']))
             ->assertOk()

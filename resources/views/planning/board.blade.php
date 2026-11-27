@@ -68,10 +68,6 @@
             @endforelse
         </div>
 
-        {{ $cards->onEachSide(1)->links('planning.issue-pagination') }}
-
-        @canany(['edit planning tasks', 'delete planning tasks'])
-            <p class="muted mt-4 text-xs">Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a></p>
-        @endcanany
+        {{ $cards->onEachSide(1)->links('components.pagination', ['label' => 'Issue pages']) }}
     @endif
 @endsection

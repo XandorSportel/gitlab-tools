@@ -2,9 +2,9 @@
 @section('title', $milestoneData['title'].' — Burndown')
 @section('header', 'Burndown charts')
 @section('content')
-    <div class="page-head"><div><h2>{{ $milestoneData['title'] }}</h2><p>{{ $milestoneData['start_date'] }} → {{ $milestoneData['due_date'] }}</p></div></div>
+    <div class="page-head"><div><h2>{{ $milestoneData['title'] }}</h2><p>{{ $milestoneData['start_date'] }} <i class="fi fi-rr-arrow-right" aria-hidden="true"></i> {{ $milestoneData['due_date'] }}</p></div></div>
     <div class="toolbar">
-        <a class="button secondary" href="{{ route('burndown.index') }}">← All milestones</a>
+        <a class="button secondary items-center gap-2" href="{{ route('burndown.index') }}"><i class="fi fi-rr-arrow-left" aria-hidden="true"></i> All milestones</a>
         <form method="get"><label for="metric" style="margin:0">Measure by</label><select id="metric" name="metric" onchange="this.form.submit()"><option value="count" @selected($metric === 'count')>Issue count</option><option value="weight" @selected($metric === 'weight')>Issue weight</option><option value="story_points" @selected($metric === 'story_points')>Story points</option></select></form>
     </div>
     <div class="stats">
@@ -63,7 +63,7 @@
             'openCompleted' => 'Counted as completed and still open in GitLab',
         ] as $category => $heading)
             <details style="padding:12px 0;border-top:1px solid var(--line)">
-                <summary style="cursor:pointer">{{ $heading }} <span class="badge">{{ count($healthCheck[$category]) }}</span></summary>
+                <summary class="disclosure-summary cursor-pointer"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> {{ $heading }} <span class="badge">{{ count($healthCheck[$category]) }}</span></summary>
                 @forelse($healthCheck[$category] as $issue)
                     <div class="issue" style="margin-top:8px">
                         <span>#{{ $issue['iid'] }}</span>

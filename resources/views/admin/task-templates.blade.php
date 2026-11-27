@@ -32,6 +32,6 @@
                 <li class="muted py-3">No standard tasks yet.</li>
             @endforelse
         </ul>
-        {{ $templates->links() }}
+        {{ $templates->links('components.pagination') }}
     </section>
 @endsection

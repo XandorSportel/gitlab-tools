@@ -1,10 +1,10 @@
 <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
     @if ($paginator->hasPages())
-        <nav class="flex flex-wrap items-center gap-2" aria-label="Issue pages">
+        <nav class="flex flex-wrap items-center gap-2" aria-label="{{ $label ?? 'Pagination' }}">
             @if ($paginator->onFirstPage())
-                <span class="button secondary opacity-60" aria-disabled="true">Previous</span>
+                <span class="button secondary items-center gap-2 opacity-60" aria-disabled="true"><i class="fi fi-rr-angle-left" aria-hidden="true"></i> Previous</span>
             @else
-                <a class="button secondary" href="{{ $paginator->previousPageUrl() }}" rel="prev">Previous</a>
+                <a class="button secondary items-center gap-2" href="{{ $paginator->previousPageUrl() }}" rel="prev"><i class="fi fi-rr-angle-left" aria-hidden="true"></i> Previous</a>
             @endif
 
             @foreach ($elements as $element)
@@ -22,9 +22,9 @@
             @endforeach
 
             @if ($paginator->hasMorePages())
-                <a class="button secondary" href="{{ $paginator->nextPageUrl() }}" rel="next">Next</a>
+                <a class="button secondary items-center gap-2" href="{{ $paginator->nextPageUrl() }}" rel="next">Next <i class="fi fi-rr-angle-right" aria-hidden="true"></i></a>
             @else
-                <span class="button secondary opacity-60" aria-disabled="true">Next</span>
+                <span class="button secondary items-center gap-2 opacity-60" aria-disabled="true">Next <i class="fi fi-rr-angle-right" aria-hidden="true"></i></span>
             @endif
         </nav>
     @endif

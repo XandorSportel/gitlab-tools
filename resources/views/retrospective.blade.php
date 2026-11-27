@@ -55,7 +55,7 @@
                             <tr style="border-top:1px solid var(--line)">
                                 <th scope="row" style="padding:12px 16px 12px 0">
                                     <a href="{{ route('burndown.show', ['milestone' => $row['milestone']['id'], 'metric' => 'story_points']) }}">{{ $row['milestone']['title'] }}</a>
-                                    <br><small class="muted">{{ $row['milestone']['start_date'] }} → {{ $row['milestone']['due_date'] }}</small>
+                                    <br><small class="muted">{{ $row['milestone']['start_date'] }} <i class="fi fi-rr-arrow-right" aria-hidden="true"></i> {{ $row['milestone']['due_date'] }}</small>
                                 </th>
                                 @if($row['points'] !== null)
                                     <td>{{ $row['points']['planned'] }}</td>

@@ -8,7 +8,7 @@
         <section class="card"><div class="milestones">
                 @forelse($milestones as $milestone)
                     <a class="milestone" href="{{ route('burndown.show', $milestone['id']) }}">
-                        <span><strong>{{ $milestone['title'] }}</strong><br><small class="muted">{{ $milestone['start_date'] ?: 'No start date' }} → {{ $milestone['due_date'] ?: 'No due date' }}</small></span>
+                        <span><strong>{{ $milestone['title'] }}</strong><br><small class="muted">{{ $milestone['start_date'] ?: 'No start date' }} <i class="fi fi-rr-arrow-right" aria-hidden="true"></i> {{ $milestone['due_date'] ?: 'No due date' }}</small></span>
                         <span class="badge">{{ $milestone['state'] }}</span>
                     </a>
                 @empty

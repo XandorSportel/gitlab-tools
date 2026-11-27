@@ -33,6 +33,6 @@
                 </li>
             @endforeach
         </ul>
-        {{ $permissions->links() }}
+        {{ $permissions->links('components.pagination') }}
     </section>
 @endsection

@@ -22,6 +22,6 @@
                 </li>
             @endforeach
         </ul>
-        {{ $users->links() }}
+        {{ $users->links('components.pagination') }}
     </section>
 @endsection

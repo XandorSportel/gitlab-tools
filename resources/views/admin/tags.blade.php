@@ -28,6 +28,6 @@
                 <li class="muted py-3">No Planning tags yet.</li>
             @endforelse
         </ul>
-        {{ $tags->links() }}
+        {{ $tags->links('components.pagination') }}
     </section>
 @endsection

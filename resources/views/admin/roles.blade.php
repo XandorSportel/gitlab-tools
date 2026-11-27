@@ -21,6 +21,6 @@
                 <li class="muted py-3">No roles yet.</li>
             @endforelse
         </ul>
-        {{ $roles->links() }}
+        {{ $roles->links('components.pagination') }}
     </section>
 @endsection

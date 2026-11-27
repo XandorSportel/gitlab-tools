@@ -12,7 +12,7 @@
 
         @if ($taskTemplates->isNotEmpty())
             <details class="mb-4">
-                <summary class="cursor-pointer text-sm font-semibold">Choose a standard task</summary>
+                <summary class="disclosure-summary cursor-pointer text-sm font-semibold"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> Choose a standard task</summary>
                 <ul class="mt-3 flex flex-wrap gap-2">
                     @foreach ($taskTemplates as $template)
                         <li>

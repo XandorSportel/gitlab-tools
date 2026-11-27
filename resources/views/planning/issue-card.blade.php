@@ -33,7 +33,7 @@
 
     @can('edit planning tasks')
         <details class="mt-3">
-            <summary class="muted cursor-pointer text-sm">{{ $card['mergeRequestUrl'] ? 'Edit merge request link' : 'Add merge request link' }}</summary>
+            <summary class="disclosure-summary muted cursor-pointer text-sm"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> {{ $card['mergeRequestUrl'] ? 'Edit merge request link' : 'Add merge request link' }}</summary>
             <form class="mt-2 flex flex-wrap items-end gap-3" method="post" action="{{ route('planning.merge-request.update', $card['issue']['id']) }}">
                 @csrf
                 @method('PATCH')
@@ -48,7 +48,7 @@
 
     @can('manage planning tags')
         <details class="mt-3">
-            <summary class="muted cursor-pointer text-sm">Edit tags</summary>
+            <summary class="disclosure-summary muted cursor-pointer text-sm"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> Edit tags</summary>
             @if ($availableTags->isEmpty())
                 <p class="muted mt-2 text-sm">No Planning tags have been created yet.</p>
             @else
@@ -72,7 +72,7 @@
 
     @if ($card['openTasks']->isNotEmpty())
         <details class="mt-4 border-t border-zinc-200 pt-4">
-            <summary class="cursor-pointer text-sm font-semibold">Open tasks ({{ $card['openTasks']->count() }})</summary>
+            <summary class="disclosure-summary cursor-pointer text-sm font-semibold"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> Open tasks ({{ $card['openTasks']->count() }})</summary>
             @foreach ($card['openTasks'] as $task)
                 @include('planning.task-card', ['task' => $task])
             @endforeach
@@ -81,7 +81,7 @@
 
     @if ($card['completedCount'])
         <details class="mt-4 border-t border-zinc-200 pt-4" @if ($card['showCompleted']) open @endif>
-            <summary class="cursor-pointer text-sm font-semibold">Completed tasks ({{ $card['completedCount'] }})</summary>
+            <summary class="disclosure-summary cursor-pointer text-sm font-semibold"><i class="fi fi-rr-angle-right disclosure-icon" aria-hidden="true"></i> Completed tasks ({{ $card['completedCount'] }})</summary>
             @foreach ($card['completedTasks'] as $task)
                 @include('planning.task-card', ['task' => $task])
             @endforeach
