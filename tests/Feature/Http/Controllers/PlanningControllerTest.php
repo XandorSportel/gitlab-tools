@@ -70,7 +70,7 @@ class PlanningControllerTest extends TestCase
         $task = PlanningTask::query()->sole();
         $this->assertSame($planner->id, $task->created_by);
         $this->assertSame($this->issue()->id, $task->planning_issue_id);
-        $this->assertSame('https://gitlab.example.com/team/project/-/issues/42', $task->gitlab_url);
+        $this->assertNull($task->gitlab_url);
         $this->assertEqualsCanonicalizing(
             [$firstAssignee->id, $secondAssignee->id],
             $task->assignees()->pluck('users.id')->all(),
@@ -80,9 +80,7 @@ class PlanningControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Prepare sprint planning')
             ->assertSee('Bring the backlog.')
-            ->assertSee('href="https://gitlab.example.com/team/project/-/issues/42"', false)
-            ->assertSeeText('Open in GitLab')
-            ->assertDontSeeText('https://gitlab.example.com/team/project/-/issues/42')
+            ->assertDontSee('https://gitlab.example.com/team/project/-/issues/42')
             ->assertSee($firstAssignee->name)
             ->assertSee($secondAssignee->name);
     }
@@ -109,10 +107,9 @@ class PlanningControllerTest extends TestCase
             ->from(route('planning.index'))
             ->post(route('planning.store', 42), [
                 'assignee_ids' => [$planner->id + 1],
-                'gitlab_url' => 'javascript:alert(1)',
             ])
             ->assertRedirect(route('planning.index'))
-            ->assertSessionHasErrors(['title', 'assignee_ids.0', 'gitlab_url']);
+            ->assertSessionHasErrors(['title', 'assignee_ids.0']);
 
         $this->assertDatabaseEmpty('planning_tasks');
     }
@@ -169,12 +166,13 @@ class PlanningControllerTest extends TestCase
         $this->actingAs($editor)
             ->get(route('planning.index'))
             ->assertSee(route('planning.edit', $task))
+            ->assertDontSee('https://gitlab.com/team/project/-/issues/1')
             ->assertDontSee('data-open-modal', false);
 
         $this->get(route('planning.edit', $task))
             ->assertOk()
             ->assertSee('value="Original title"', false)
-            ->assertSee('value="https://gitlab.com/team/project/-/issues/1"', false)
+            ->assertDontSee('name="gitlab_url"', false)
             ->assertViewHas('selectedAssigneeIds', [$originalAssignee->id]);
 
         $this->patch(route('planning.update', $task), [
@@ -187,14 +185,13 @@ class PlanningControllerTest extends TestCase
         $updatedTask = $task->fresh();
         $this->assertSame('Updated title', $updatedTask->title);
         $this->assertSame('Updated description', $updatedTask->description);
-        $this->assertSame('https://gitlab.com/team/project/-/issues/2', $updatedTask->gitlab_url);
+        $this->assertSame($task->gitlab_url, $updatedTask->gitlab_url);
         $this->assertSame($task->created_by, $updatedTask->created_by);
         $this->assertSame([$newAssignee->id], $updatedTask->assignees()->pluck('users.id')->all());
 
-        $this->patch(route('planning.update', $task), ['title' => 'Updated title', 'gitlab_url' => ''])
+        $this->patch(route('planning.update', $task), ['title' => 'Updated title'])
             ->assertRedirect(route('planning.index'));
         $this->assertDatabaseEmpty('planning_task_user');
-        $this->assertNull($task->fresh()->gitlab_url);
     }
 
     public function test_invalid_updates_keep_the_task_and_existing_assignee(): void

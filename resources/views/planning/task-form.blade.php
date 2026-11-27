@@ -1,7 +1,6 @@
 @php
     $title = old('title', $task?->title);
     $description = old('description', $task?->description);
-    $gitLabUrl = old('gitlab_url', $task?->gitlab_url);
     $assigneeIds = old('assignee_ids', session()->hasOldInput() ? [] : $selectedAssigneeIds);
 @endphp
 
@@ -29,11 +28,6 @@
     <div>
         <label for="description">Description</label>
         <textarea class="w-full rounded-[7px] border border-zinc-300 bg-white px-[11px] py-2.5 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100" id="description" name="description" rows="3" maxlength="5000">{{ is_string($description) ? $description : '' }}</textarea>
-    </div>
-
-    <div>
-        <label for="gitlab_url">GitLab link (optional)</label>
-        <input id="gitlab_url" name="gitlab_url" type="url" value="{{ is_string($gitLabUrl) ? $gitLabUrl : '' }}" maxlength="2048">
     </div>
 
     <fieldset class="min-w-0">

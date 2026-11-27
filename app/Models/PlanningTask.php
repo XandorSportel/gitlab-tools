@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['title', 'description', 'gitlab_url'])]
+#[Fillable(['title', 'description'])]
 #[Touches(['issue'])]
 class PlanningTask extends Model
 {

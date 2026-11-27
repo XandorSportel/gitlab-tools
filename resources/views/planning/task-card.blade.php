@@ -15,9 +15,6 @@
         @if ($task->creator)
             <p class="muted mt-1 text-xs">Added by {{ $task->creator->name }}</p>
         @endif
-        @if ($task->gitlab_url)
-            <a class="button secondary mt-3" href="{{ $task->gitlab_url }}" target="_blank" rel="noopener noreferrer">Open in GitLab</a>
-        @endif
     </div>
 
     @canany(['edit planning tasks', 'delete planning tasks'])
