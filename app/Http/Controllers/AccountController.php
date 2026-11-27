@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PlanningSprint;
+use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
 
 class AccountController extends Controller
 {
@@ -36,9 +40,22 @@ class AccountController extends Controller
         return back()->with('status', 'Password updated.');
     }
 
-    public function settings(Request $request): View
+    public function settings(Request $request, PlanningSprint $sprint): View
     {
+        $milestones = [];
+        $planningError = null;
+        if ($request->user()->can('view planning')) {
+            try {
+                $milestones = $sprint->milestones();
+            } catch (HttpClientException|RuntimeException $exception) {
+                report($exception);
+                $planningError = 'Unable to load milestones from GitLab.';
+            }
+        }
+
         return view('account.settings', [
+            'planningMilestones' => $milestones,
+            'planningError' => $planningError,
             ...$request->user()->burndownSettings(),
             'projectWorkdays' => config('services.gitlab.workdays'),
             'projectCompletedLabels' => config('services.gitlab.completed_labels'),
@@ -48,6 +65,35 @@ class AccountController extends Controller
                 'token_configured' => filled(config('services.gitlab.token')),
             ],
         ]);
+    }
+
+    public function updatePlanningSettings(Request $request, PlanningSprint $sprint): RedirectResponse
+    {
+        $data = $request->validate([
+            'planning_milestone_id' => ['nullable', 'integer', 'min:1'],
+            'planning_done_label' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+        $milestoneId = isset($data['planning_milestone_id']) ? (int) $data['planning_milestone_id'] : null;
+        if ($milestoneId !== null && $milestoneId !== $user->planning_milestone_id) {
+            try {
+                $milestones = $sprint->milestones();
+            } catch (HttpClientException|RuntimeException $exception) {
+                report($exception);
+                throw ValidationException::withMessages(['planning_milestone_id' => 'Unable to verify the milestone in GitLab.']);
+            }
+
+            if (! collect($milestones)->contains(fn (array $milestone): bool => (int) $milestone['id'] === $milestoneId)) {
+                throw ValidationException::withMessages(['planning_milestone_id' => 'Choose a milestone from the configured GitLab project.']);
+            }
+        }
+
+        $user->planning_milestone_id = $milestoneId;
+        $user->planning_done_label = $data['planning_done_label'] ?? null;
+        $user->save();
+
+        return redirect()->to(route('settings').'#planning-settings')->with('planning_status', 'Planning preferences updated.');
     }
 
     public function updateBurndownSettings(Request $request): RedirectResponse

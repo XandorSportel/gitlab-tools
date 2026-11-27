@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PlanningTask;
 use App\Models\User;
+use App\Services\PlanningSprint;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,41 +15,27 @@ use Illuminate\View\View;
 
 class PlanningController extends Controller
 {
-    public function index(Request $request): View
+    public function create(Request $request, int $issue, PlanningSprint $sprint): View
     {
-        $taskQuery = PlanningTask::query()->with(['creator:id,name', 'assignees:id,name']);
+        $gitLabIssue = $sprint->findIssue($request->user(), $issue);
+        $assignableUsers = $this->assignableUsers();
 
-        $openTasks = (clone $taskQuery)
-            ->whereNull('completed_at')
-            ->orderByDesc('id')
-            ->simplePaginate(20)
-            ->withQueryString();
-
-        $completedTasks = $taskQuery
-            ->whereNotNull('completed_at')
-            ->orderByDesc('completed_at')
-            ->orderByDesc('id')
-            ->simplePaginate(20, pageName: 'completed_page')
-            ->withQueryString()
-            ->fragment('completed-tasks');
-
-        $assignableUsers = $request->user()->can('create planning tasks')
-            ? $this->assignableUsers()
-            : collect();
-
-        return view('planning', compact('openTasks', 'completedTasks', 'assignableUsers'));
+        return view('planning.create', compact('gitLabIssue', 'assignableUsers'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse
     {
         $validated = $this->validateTask($request);
 
-        DB::transaction(function () use ($request, $validated): void {
+        $sprint->findIssue($request->user(), $issue);
+
+        DB::transaction(function () use ($request, $validated, $issue, $sprint): void {
             $task = new PlanningTask([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'gitlab_url' => $validated['gitlab_url'] ?? null,
             ]);
+            $task->issue()->associate($sprint->localIssue($issue));
             $task->creator()->associate($request->user());
             $task->save();
             $task->assignees()->attach($validated['assignee_ids'] ?? []);
@@ -76,7 +63,10 @@ class PlanningController extends Controller
                 'description' => $validated['description'] ?? null,
                 ...Arr::only($validated, ['gitlab_url']),
             ]);
-            $lockedTask->assignees()->sync($validated['assignee_ids'] ?? []);
+            $changes = $lockedTask->assignees()->sync($validated['assignee_ids'] ?? []);
+            if ($changes['attached'] || $changes['detached']) {
+                $lockedTask->issue()->touch();
+            }
         });
 
         return redirect()->route('planning.index')->with('status', 'Task updated.');
@@ -86,20 +76,23 @@ class PlanningController extends Controller
     {
         $request->validate(['completed' => ['required', 'boolean']]);
         $completed = $request->boolean('completed');
-        $taskQuery = PlanningTask::query()->whereKey($task->getKey());
+        DB::transaction(function () use ($task, $completed): void {
+            $taskQuery = PlanningTask::query()->whereKey($task->getKey());
+            $changed = $completed
+                ? $taskQuery->whereNull('completed_at')->update(['completed_at' => now()])
+                : $taskQuery->whereNotNull('completed_at')->update(['completed_at' => null]);
 
-        if ($completed) {
-            $taskQuery->whereNull('completed_at')->update(['completed_at' => now()]);
-        } else {
-            $taskQuery->whereNotNull('completed_at')->update(['completed_at' => null]);
-        }
+            if ($changed) {
+                $task->issue()->touch();
+            }
+        });
 
         return redirect()->route('planning.index')->with('status', $completed ? 'Task completed.' : 'Task reopened.');
     }
 
     public function destroy(PlanningTask $task): RedirectResponse
     {
-        $task->delete();
+        DB::transaction(fn () => $task->delete());
 
         return redirect()->route('planning.index')->with('status', 'Task deleted.');
     }

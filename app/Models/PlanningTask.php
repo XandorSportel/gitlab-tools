@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Database\Factories\PlanningTaskFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Touches;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['title', 'description', 'gitlab_url'])]
+#[Touches(['issue'])]
 class PlanningTask extends Model
 {
     /** @use HasFactory<PlanningTaskFactory> */
@@ -19,6 +21,12 @@ class PlanningTask extends Model
     protected function casts(): array
     {
         return ['completed_at' => 'immutable_datetime'];
+    }
+
+    /** @return BelongsTo<PlanningIssue, $this> */
+    public function issue(): BelongsTo
+    {
+        return $this->belongsTo(PlanningIssue::class, 'planning_issue_id');
     }
 
     /** @return BelongsTo<User, $this> */

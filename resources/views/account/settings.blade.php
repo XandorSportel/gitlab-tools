@@ -58,4 +58,7 @@
         </form>
     @endif
 </section>
+@can('view planning')
+    @include('account.planning-settings', ['milestones' => $planningMilestones, 'error' => $planningError])
+@endcan
 @endsection

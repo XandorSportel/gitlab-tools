@@ -7,11 +7,18 @@ use Spatie\Permission\Models\Permission;
 
 class PlanningPermissionSeeder extends Seeder
 {
+    public const array Permissions = [
+        'view planning',
+        'create planning tasks',
+        'edit planning tasks',
+        'delete planning tasks',
+        'manage planning tags',
+    ];
+
     public function run(): void
     {
-        Permission::findOrCreate('view planning', 'web');
-        Permission::findOrCreate('create planning tasks', 'web');
-        Permission::findOrCreate('edit planning tasks', 'web');
-        Permission::findOrCreate('delete planning tasks', 'web');
+        foreach (self::Permissions as $name) {
+            Permission::findOrCreate($name, 'web');
+        }
     }
 }

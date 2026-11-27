@@ -31,6 +31,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function planningDoneLabel(): string
+    {
+        return $this->planning_done_label ?? 'Done';
+    }
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
@@ -46,6 +51,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'burndown_workdays' => 'array',
             'burndown_completed_labels' => 'array',
+            'planning_milestone_id' => 'integer',
         ];
     }
 }

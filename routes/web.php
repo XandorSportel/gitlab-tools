@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BurndownController;
+use App\Http\Controllers\PlanningBoardController;
 use App\Http\Controllers\PlanningController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,8 +20,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/retrospective', [BurndownController::class, 'retrospective'])->name('retrospective.index');
     Route::get('/chart/{milestone}', [BurndownController::class, 'show'])->whereNumber('milestone')->name('burndown.show');
     Route::prefix('planning')->name('planning.')->middleware('can:view planning')->group(function () {
-        Route::get('/', [PlanningController::class, 'index'])->name('index');
-        Route::post('/', [PlanningController::class, 'store'])->can('create planning tasks')->name('store');
+        Route::get('/', [PlanningBoardController::class, 'index'])->name('index');
+        Route::get('/issues/{issue}/tasks/create', [PlanningController::class, 'create'])
+            ->whereNumber('issue')->can('create planning tasks')->name('create');
+        Route::post('/issues/{issue}/tasks', [PlanningController::class, 'store'])
+            ->whereNumber('issue')->can('create planning tasks')->name('store');
+        Route::patch('/issues/{issue}/tags', [PlanningBoardController::class, 'updateTags'])
+            ->whereNumber('issue')->can('manage planning tags')->name('tags.update');
         Route::get('/{task}/edit', [PlanningController::class, 'edit'])->whereNumber('task')->can('edit planning tasks')->name('edit');
         Route::patch('/{task}', [PlanningController::class, 'update'])->whereNumber('task')->can('edit planning tasks')->name('update');
         Route::patch('/{task}/completion', [PlanningController::class, 'updateCompletion'])
@@ -31,6 +37,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
     Route::get('/settings', [AccountController::class, 'settings'])->name('settings');
+    Route::patch('/settings/planning', [AccountController::class, 'updatePlanningSettings'])
+        ->can('view planning')->name('settings.planning.update');
     Route::patch('/settings/burndown', [AccountController::class, 'updateBurndownSettings'])->name('settings.burndown.update');
     Route::delete('/settings/burndown', [AccountController::class, 'resetBurndownSettings'])->name('settings.burndown.reset');
 });

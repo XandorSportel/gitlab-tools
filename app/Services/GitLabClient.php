@@ -20,9 +20,7 @@ class GitLabClient
 
     public function milestones(string $project): array
     {
-        $milestones = $this->all('/projects/'.rawurlencode($project).'/milestones', [
-            'state' => 'all',
-        ]);
+        $milestones = $this->all('/projects/'.rawurlencode($project).'/milestones');
 
         usort($milestones, fn (array $a, array $b) => strcmp(
             $b['due_date'] ?? '0000-00-00',
@@ -39,9 +37,7 @@ class GitLabClient
 
     public function milestoneIssues(string $project, int $milestoneId): array
     {
-        return $this->all('/projects/'.rawurlencode($project).'/milestones/'.$milestoneId.'/issues', [
-            'state' => 'all',
-        ]);
+        return $this->all('/projects/'.rawurlencode($project).'/milestones/'.$milestoneId.'/issues');
     }
 
     public function issueLabelEvents(string $project, int $issueIid): array
