@@ -27,6 +27,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/chart/{milestone}', [BurndownController::class, 'show'])->whereNumber('milestone')->name('burndown.show');
     Route::prefix('planning')->name('planning.')->middleware('can:view planning')->group(function () {
         Route::get('/', [PlanningBoardController::class, 'index'])->name('index');
+        Route::get('/tasks', [PlanningController::class, 'index'])->name('tasks.index');
+        Route::get('/tasks/create', [PlanningController::class, 'create'])
+            ->can('create planning tasks')->name('tasks.create');
+        Route::post('/tasks', [PlanningController::class, 'store'])
+            ->can('create planning tasks')->name('tasks.store');
         Route::get('/issues/{issue}/tasks/create', [PlanningController::class, 'create'])
             ->whereNumber('issue')->can('create planning tasks')->name('create');
         Route::post('/issues/{issue}/tasks', [PlanningController::class, 'store'])

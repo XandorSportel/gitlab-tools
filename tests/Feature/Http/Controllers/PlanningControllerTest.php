@@ -306,6 +306,82 @@ class PlanningControllerTest extends TestCase
             ->assertSee('q=Sprint%20fixture&amp;completed_42=1#issue-7', false);
     }
 
+    public function test_standalone_tasks_are_grouped_by_completion_without_loading_gitlab_issues(): void
+    {
+        $this->withoutVite();
+        $this->prepareIssue();
+        $viewer = User::factory()->create()->givePermissionTo('view planning');
+        PlanningTask::factory()->recycle($viewer)->create(['title' => 'Open standalone task']);
+        PlanningTask::factory()->recycle($viewer)->count(20)->create([
+            'title' => 'Recently completed standalone task',
+            'completed_at' => '2026-11-27 12:00:00',
+        ]);
+        PlanningTask::factory()->recycle($viewer)->create([
+            'title' => 'Earliest completed standalone task',
+            'completed_at' => '2026-11-26 12:00:00',
+        ]);
+        $this->taskFactory()->recycle($viewer)->create(['title' => 'Task linked to an issue']);
+
+        $this->actingAs(User::factory()->create())->get(route('planning.tasks.index'))->assertForbidden();
+
+        $this->actingAs($viewer)
+            ->get(route('planning.tasks.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Open tasks', 'Open standalone task', 'Completed tasks (21)', 'Recently completed standalone task'])
+            ->assertDontSeeText('Earliest completed standalone task')
+            ->assertDontSeeText('Task linked to an issue')
+            ->assertDontSeeText('Add task')
+            ->assertSee('page=2#completed-tasks', false);
+
+        $this->post(route('planning.tasks.store'), ['title' => 'Write attempt'])->assertForbidden();
+
+        $this->get(route('planning.tasks.index', ['page' => 2]))
+            ->assertOk()
+            ->assertSeeInOrder(['Open standalone task', 'Completed tasks (21)', 'Earliest completed standalone task'])
+            ->assertDontSeeText('Recently completed standalone task');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_planners_can_manage_a_standalone_task_and_return_to_the_task_list(): void
+    {
+        $this->withoutVite();
+        $this->prepareIssue();
+        $planner = User::factory()->create()->givePermissionTo(
+            'view planning', 'create planning tasks', 'edit planning tasks', 'delete planning tasks',
+        );
+        $assignee = User::factory()->create();
+        $taskList = route('planning.tasks.index');
+
+        $this->actingAs($planner)->get(route('planning.tasks.create'))
+            ->assertOk()
+            ->assertSee('action="'.route('planning.tasks.store').'"', false);
+
+        $this->post(route('planning.tasks.store'), ['title' => 'Plan a demo'])
+            ->assertRedirect($taskList);
+
+        $task = PlanningTask::query()->sole();
+        $this->assertNull($task->planning_issue_id);
+
+        $this->get(route('planning.edit', $task))->assertOk()->assertSee('Standalone Tasks');
+        $this->patch(route('planning.update', $task), [
+            'title' => 'Prepare a demo',
+            'assignee_ids' => [$assignee->id],
+        ])->assertRedirect($taskList);
+
+        $this->patch(route('planning.completion.update', $task), ['completed' => '1'])
+            ->assertRedirect($taskList);
+        $this->get($taskList)->assertSeeInOrder(['Completed tasks (1)', 'Prepare a demo', 'Completed on', $assignee->name]);
+
+        $this->patch(route('planning.completion.update', $task), ['completed' => '0'])
+            ->assertRedirect($taskList);
+        $this->get($taskList)->assertSeeInOrder(['Open tasks', 'Prepare a demo', 'Completed tasks (0)']);
+
+        $this->delete(route('planning.destroy', $task))->assertRedirect($taskList);
+        $this->assertModelMissing($task);
+        Http::assertNothingSent();
+    }
+
     private function prepareIssue(): void
     {
         $this->seed(PlanningPermissionSeeder::class);

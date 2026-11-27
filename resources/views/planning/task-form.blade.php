@@ -50,8 +50,6 @@
 
     <div class="flex flex-wrap gap-2">
         <button class="primary" type="submit">{{ $task ? 'Save changes' : 'Add task' }}</button>
-        @if ($task || ($showCancel ?? false))
-            <a class="button secondary" href="{{ route('planning.index') }}">Cancel</a>
-        @endif
+        <a class="button secondary" href="{{ route($cancelRoute) }}">Cancel</a>
     </div>
 </form>

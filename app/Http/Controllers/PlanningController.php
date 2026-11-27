@@ -15,19 +15,34 @@ use Illuminate\View\View;
 
 class PlanningController extends Controller
 {
-    public function create(Request $request, int $issue, PlanningSprint $sprint): View
+    public function index(): View
     {
-        $gitLabIssue = $sprint->findIssue($request->user(), $issue);
+        $tasks = PlanningTask::query()
+            ->whereNull('planning_issue_id')
+            ->with(['assignees', 'creator']);
+
+        $openTasks = (clone $tasks)->whereNull('completed_at')->latest('id')->get();
+        $completedTasks = $tasks->whereNotNull('completed_at')
+            ->latest('completed_at')->latest('id')->paginate(20)->fragment('completed-tasks');
+
+        return view('planning.tasks', compact('openTasks', 'completedTasks'));
+    }
+
+    public function create(Request $request, PlanningSprint $sprint, ?int $issue = null): View
+    {
+        $gitLabIssue = $issue === null ? null : $sprint->findIssue($request->user(), $issue);
         $assignableUsers = $this->assignableUsers();
 
         return view('planning.create', compact('gitLabIssue', 'assignableUsers'));
     }
 
-    public function store(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse
+    public function store(Request $request, PlanningSprint $sprint, ?int $issue = null): RedirectResponse
     {
         $validated = $this->validateTask($request);
 
-        $sprint->findIssue($request->user(), $issue);
+        if ($issue !== null) {
+            $sprint->findIssue($request->user(), $issue);
+        }
 
         DB::transaction(function () use ($request, $validated, $issue, $sprint): void {
             $task = new PlanningTask([
@@ -35,13 +50,15 @@ class PlanningController extends Controller
                 'description' => $validated['description'] ?? null,
                 'gitlab_url' => $validated['gitlab_url'] ?? null,
             ]);
-            $task->issue()->associate($sprint->localIssue($issue));
+            if ($issue !== null) {
+                $task->issue()->associate($sprint->localIssue($issue));
+            }
             $task->creator()->associate($request->user());
             $task->save();
             $task->assignees()->attach($validated['assignee_ids'] ?? []);
         });
 
-        return redirect()->route('planning.index')->with('status', 'Task added.');
+        return redirect()->route($issue === null ? 'planning.tasks.index' : 'planning.index')->with('status', 'Task added.');
     }
 
     public function edit(PlanningTask $task): View
@@ -69,7 +86,7 @@ class PlanningController extends Controller
             }
         });
 
-        return redirect()->route('planning.index')->with('status', 'Task updated.');
+        return redirect()->route($task->planning_issue_id === null ? 'planning.tasks.index' : 'planning.index')->with('status', 'Task updated.');
     }
 
     public function updateCompletion(Request $request, PlanningTask $task): RedirectResponse
@@ -87,14 +104,14 @@ class PlanningController extends Controller
             }
         });
 
-        return redirect()->route('planning.index')->with('status', $completed ? 'Task completed.' : 'Task reopened.');
+        return redirect()->route($task->planning_issue_id === null ? 'planning.tasks.index' : 'planning.index')->with('status', $completed ? 'Task completed.' : 'Task reopened.');
     }
 
     public function destroy(PlanningTask $task): RedirectResponse
     {
         DB::transaction(fn () => $task->delete());
 
-        return redirect()->route('planning.index')->with('status', 'Task deleted.');
+        return redirect()->route($task->planning_issue_id === null ? 'planning.tasks.index' : 'planning.index')->with('status', 'Task deleted.');
     }
 
     /** @return array{title: string, description?: ?string, gitlab_url?: ?string, assignee_ids?: list<int|string>} */

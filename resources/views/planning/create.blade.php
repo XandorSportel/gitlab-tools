@@ -1,18 +1,20 @@
 @extends('layouts.app')
 
 @section('title', 'Add task — GitLab Tools')
-@section('header', 'Sprint Issues')
+@section('header', $gitLabIssue ? 'Sprint Issues' : 'Standalone Tasks')
 
 @section('content')
     <section class="card max-w-2xl" aria-labelledby="add-task">
         <h2 class="section-title" id="add-task">Add task</h2>
-        <p class="section-copy">#{{ $gitLabIssue['iid'] }} {{ $gitLabIssue['title'] }}</p>
+        @if ($gitLabIssue)
+            <p class="section-copy">#{{ $gitLabIssue['iid'] }} {{ $gitLabIssue['title'] }}</p>
+        @endif
 
         @include('planning.task-form', [
-            'action' => route('planning.store', $gitLabIssue['id']),
+            'action' => $gitLabIssue ? route('planning.store', $gitLabIssue['id']) : route('planning.tasks.store'),
             'task' => null,
             'selectedAssigneeIds' => [],
-            'showCancel' => true,
+            'cancelRoute' => $gitLabIssue ? 'planning.index' : 'planning.tasks.index',
         ])
     </section>
 @endsection

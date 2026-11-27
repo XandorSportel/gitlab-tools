@@ -16,7 +16,13 @@
             <a class="nav-link {{ request()->routeIs('burndown.*') ? 'active' : '' }}" href="{{ route('burndown.index') }}"><span class="nav-icon">↘</span><span>Burndown charts</span></a>
             <a class="nav-link {{ request()->routeIs('retrospective.*') ? 'active' : '' }}" href="{{ route('retrospective.index') }}"><span class="nav-icon">↔</span><span>Sprint retrospective</span></a>
             @can('view planning')
-                <a class="nav-link {{ request()->routeIs('planning.*') ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Sprint Issues" @if(request()->routeIs('planning.*')) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Sprint Issues</span></a>
+                @php
+                    $standaloneTasksActive = request()->routeIs('planning.tasks.*')
+                        || (request()->routeIs('planning.edit') && $task->planning_issue_id === null);
+                    $sprintIssuesActive = request()->routeIs('planning.*') && ! $standaloneTasksActive;
+                @endphp
+                <a class="nav-link {{ $sprintIssuesActive ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Sprint Issues" @if($sprintIssuesActive) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Sprint Issues</span></a>
+                <a class="nav-link {{ $standaloneTasksActive ? 'active' : '' }}" href="{{ route('planning.tasks.index') }}" aria-label="Standalone Tasks" @if($standaloneTasksActive) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">✓</span><span>Standalone Tasks</span></a>
             @endcan
         </nav>
         <div class="mt-auto">
