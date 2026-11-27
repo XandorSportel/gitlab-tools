@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -40,16 +41,25 @@ class GitLabClient
         return $this->all('/projects/'.rawurlencode($project).'/milestones/'.$milestoneId.'/issues');
     }
 
-    public function issueLabelEvents(string $project, int $issueIid): array
+    public function issueLabelEvents(string $project, int $issueIid, ?string $updatedAt = null): array
     {
-        $events = $this->all('/projects/'.rawurlencode($project).'/issues/'.$issueIid.'/resource_label_events');
+        $path = '/projects/'.rawurlencode($project).'/issues/'.$issueIid.'/resource_label_events';
+        $key = 'gitlab:label-events:'.hash('sha256', implode("\n", [$this->baseUrl, $this->token, $path, $updatedAt]));
 
-        usort($events, fn (array $first, array $second) => strcmp(
-            $first['created_at'],
-            $second['created_at'],
-        ));
+        return Cache::remember($key, 120, function () use ($path): array {
+            $events = $this->all($path);
 
-        return $events;
+            usort($events, fn (array $first, array $second) => strcmp(
+                $first['created_at'],
+                $second['created_at'],
+            ));
+
+            return array_map(fn (array $event): array => [
+                'created_at' => $event['created_at'],
+                'action' => $event['action'],
+                'label' => $event['label'] === null ? null : ['name' => $event['label']['name']],
+            ], $events);
+        });
     }
 
     private function get(string $path, array $query = []): array

@@ -101,7 +101,7 @@ class BurndownController extends Controller
         );
 
         return array_map(function (array $issue) use ($client, $project): array {
-            $issue['label_events'] = $client->issueLabelEvents($project, $issue['iid']);
+            $issue['label_events'] = $client->issueLabelEvents($project, $issue['iid'], $issue['updated_at'] ?? null);
 
             return $issue;
         }, array_values($issues));
