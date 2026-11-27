@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Planning — GitLab Tools')
-@section('header', 'Planning')
+@section('header', 'Sprint Issues')
 
 @section('content')
     @if (session('status'))

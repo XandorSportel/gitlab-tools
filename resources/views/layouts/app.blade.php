@@ -16,7 +16,7 @@
             <a class="nav-link {{ request()->routeIs('burndown.*') ? 'active' : '' }}" href="{{ route('burndown.index') }}"><span class="nav-icon">↘</span><span>Burndown charts</span></a>
             <a class="nav-link {{ request()->routeIs('retrospective.*') ? 'active' : '' }}" href="{{ route('retrospective.index') }}"><span class="nav-icon">↔</span><span>Sprint retrospective</span></a>
             @can('view planning')
-                <a class="nav-link {{ request()->routeIs('planning.*') ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Planning" @if(request()->routeIs('planning.*')) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Planning</span></a>
+                <a class="nav-link {{ request()->routeIs('planning.*') ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Sprint Issues" @if(request()->routeIs('planning.*')) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Sprint Issues</span></a>
             @endcan
         </nav>
         <div class="mt-auto">

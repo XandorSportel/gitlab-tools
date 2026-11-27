@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Add task — GitLab Tools')
-@section('header', 'Planning')
+@section('header', 'Sprint Issues')
 
 @section('content')
     <section class="card max-w-2xl" aria-labelledby="add-task">
