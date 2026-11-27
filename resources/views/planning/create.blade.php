@@ -28,6 +28,7 @@
             'action' => $gitLabIssue ? route('planning.store', $gitLabIssue['id']) : route('planning.tasks.store'),
             'task' => null,
             'selectedAssigneeIds' => [],
+            'showLinkField' => $gitLabIssue === null,
             'cancelRoute' => $gitLabIssue ? 'planning.index' : 'planning.tasks.index',
         ])
     </section>

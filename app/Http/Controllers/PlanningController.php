@@ -9,6 +9,7 @@ use App\Services\PlanningSprint;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -44,7 +45,7 @@ class PlanningController extends Controller
 
     public function store(Request $request, PlanningSprint $sprint, ?int $issue = null): RedirectResponse
     {
-        $validated = $this->validateTask($request);
+        $validated = $this->validateTask($request, $issue === null);
 
         if ($issue !== null) {
             $sprint->findIssue($request->user(), $issue);
@@ -54,6 +55,7 @@ class PlanningController extends Controller
             $task = new PlanningTask([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
+                ...Arr::only($validated, ['gitlab_url']),
             ]);
             if ($issue !== null) {
                 $task->issue()->associate($sprint->localIssue($issue));
@@ -76,13 +78,14 @@ class PlanningController extends Controller
 
     public function update(Request $request, PlanningTask $task): RedirectResponse
     {
-        $validated = $this->validateTask($request);
+        $validated = $this->validateTask($request, $task->planning_issue_id === null);
 
         DB::transaction(function () use ($task, $validated): void {
             $lockedTask = PlanningTask::query()->lockForUpdate()->findOrFail($task->getKey());
             $lockedTask->update([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
+                ...Arr::only($validated, ['gitlab_url']),
             ]);
             $changes = $lockedTask->assignees()->sync($validated['assignee_ids'] ?? []);
             if ($changes['attached'] || $changes['detached']) {
@@ -118,12 +121,13 @@ class PlanningController extends Controller
         return redirect()->route($task->planning_issue_id === null ? 'planning.tasks.index' : 'planning.index')->with('status', 'Task deleted.');
     }
 
-    /** @return array{title: string, description?: ?string, assignee_ids?: list<int|string>} */
-    private function validateTask(Request $request): array
+    /** @return array{title: string, description?: ?string, gitlab_url?: ?string, assignee_ids?: list<int|string>} */
+    private function validateTask(Request $request, bool $standalone): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'gitlab_url' => [Rule::excludeIf(! $standalone), 'nullable', 'string', 'max:2048', 'url:http,https'],
             'assignee_ids' => ['sometimes', 'array', 'list'],
             'assignee_ids.*' => ['bail', 'required', 'integer', 'distinct', Rule::exists(User::class, 'id')],
         ]);

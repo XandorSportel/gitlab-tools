@@ -30,6 +30,14 @@
         <textarea class="w-full rounded-[7px] border border-zinc-300 bg-white px-[11px] py-2.5 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100" id="description" name="description" rows="3" maxlength="5000">{{ is_string($description) ? $description : '' }}</textarea>
     </div>
 
+    @if ($showLinkField)
+        @php($taskUrl = old('gitlab_url', $task?->gitlab_url))
+        <div>
+            <label for="gitlab_url">Link (optional)</label>
+            <input id="gitlab_url" name="gitlab_url" type="url" value="{{ is_string($taskUrl) ? $taskUrl : '' }}" maxlength="2048">
+        </div>
+    @endif
+
     <fieldset class="min-w-0">
         <legend class="mb-2 text-[13px] font-semibold">Assignees</legend>
         <div class="max-h-44 overflow-y-auto rounded-[7px] border border-zinc-300 p-2">

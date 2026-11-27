@@ -9,6 +9,7 @@
 
         @include('planning.task-form', [
             'action' => route('planning.update', $task),
+            'showLinkField' => $task->planning_issue_id === null,
             'cancelRoute' => $task->planning_issue_id === null ? 'planning.tasks.index' : 'planning.index',
         ])
     </section>

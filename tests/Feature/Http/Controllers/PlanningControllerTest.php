@@ -385,26 +385,36 @@ class PlanningControllerTest extends TestCase
         );
         $assignee = User::factory()->create();
         $taskList = route('planning.tasks.index');
+        $url = 'https://example.com/demo';
 
         $this->actingAs($planner)->get(route('planning.tasks.create'))
             ->assertOk()
+            ->assertSeeText('Link (optional)')
             ->assertSee('action="'.route('planning.tasks.store').'"', false);
 
-        $this->post(route('planning.tasks.store'), ['title' => 'Plan a demo'])
+        $this->from(route('planning.tasks.create'))
+            ->post(route('planning.tasks.store'), ['title' => 'Plan a demo', 'gitlab_url' => 'javascript:alert(1)'])
+            ->assertSessionHasErrors('gitlab_url');
+
+        $this->post(route('planning.tasks.store'), ['title' => 'Plan a demo', 'gitlab_url' => $url])
             ->assertRedirect($taskList);
 
         $task = PlanningTask::query()->sole();
         $this->assertNull($task->planning_issue_id);
 
-        $this->get(route('planning.edit', $task))->assertOk()->assertSee('Standalone Tasks');
+        $this->get($taskList)->assertSeeHtml('href="'.$url.'"')->assertSeeText('Open link');
+        $this->get(route('planning.edit', $task))->assertOk()->assertSeeHtml('value="'.$url.'"');
         $this->patch(route('planning.update', $task), [
             'title' => 'Prepare a demo',
+            'gitlab_url' => '',
             'assignee_ids' => [$assignee->id],
         ])->assertRedirect($taskList);
 
         $this->patch(route('planning.completion.update', $task), ['completed' => '1'])
             ->assertRedirect($taskList);
-        $this->get($taskList)->assertSeeInOrder(['Completed tasks (1)', 'Prepare a demo', 'Completed on', $assignee->name]);
+        $this->get($taskList)
+            ->assertSeeInOrder(['Completed tasks (1)', 'Prepare a demo', 'Completed on', $assignee->name])
+            ->assertDontSeeText('Open link');
 
         $this->patch(route('planning.completion.update', $task), ['completed' => '0'])
             ->assertRedirect($taskList);
