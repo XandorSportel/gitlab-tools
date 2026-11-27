@@ -24,12 +24,14 @@ class PlanningBoardController extends Controller
             'q' => ['nullable', 'string', 'max:255'],
             'tag' => ['nullable', 'string', 'max:50'],
             'merge_status' => ['nullable', 'string', 'in:ready,action-needed'],
+            'merge_request' => ['nullable', 'string', 'in:with-link,without-link'],
         ]);
 
         $search = $filters['q'] ?? '';
         $selectedTag = $filters['tag'] ?? '';
         $mergeStatus = $filters['merge_status'] ?? '';
-        $hasFilters = $search !== '' || $selectedTag !== '' || $mergeStatus !== '';
+        $mergeRequestFilter = $filters['merge_request'] ?? '';
+        $hasFilters = $search !== '' || $selectedTag !== '' || $mergeStatus !== '' || $mergeRequestFilter !== '';
         $milestoneSelected = $request->user()->planning_milestone_id !== null;
         $error = null;
 
@@ -56,7 +58,7 @@ class PlanningBoardController extends Controller
             ? PlanningTag::query()->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        $matchingIssues = collect($issues)->filter(function (array $issue) use ($localIssues, $search, $selectedTag, $mergeStatus): bool {
+        $matchingIssues = collect($issues)->filter(function (array $issue) use ($localIssues, $search, $selectedTag, $mergeStatus, $mergeRequestFilter): bool {
             $localIssue = $localIssues->get($issue['id']);
 
             if ($selectedTag !== '' && ! $localIssue?->tags->contains(
@@ -66,6 +68,11 @@ class PlanningBoardController extends Controller
             }
 
             if ($mergeStatus !== '' && $this->needsAction($localIssue) !== ($mergeStatus === 'action-needed')) {
+                return false;
+            }
+
+            $hasMergeRequest = $localIssue?->merge_request_url !== null;
+            if ($mergeRequestFilter !== '' && $hasMergeRequest !== ($mergeRequestFilter === 'with-link')) {
                 return false;
             }
 
@@ -122,7 +129,7 @@ class PlanningBoardController extends Controller
             ];
         });
 
-        return view('planning.board', compact('cards', 'tags', 'availableTags', 'search', 'selectedTag', 'mergeStatus', 'hasFilters', 'milestoneSelected', 'error'));
+        return view('planning.board', compact('cards', 'tags', 'availableTags', 'search', 'selectedTag', 'mergeStatus', 'mergeRequestFilter', 'hasFilters', 'milestoneSelected', 'error'));
     }
 
     public function updateMergeRequest(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse

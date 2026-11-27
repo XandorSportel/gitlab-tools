@@ -29,7 +29,7 @@
                 <label for="planning-search">Search issues or tasks</label>
                 <input id="planning-search" name="q" type="search" value="{{ $search }}" maxlength="255" placeholder="Title or issue ID, e.g. #42">
             </div>
-            <div class="min-w-0 flex-1 basis-40">
+            <div class="min-w-0 flex-1 basis-32">
                 <label for="planning-tag">Tag</label>
                 <select id="planning-tag" name="tag">
                     <option value="">All tags</option>
@@ -38,12 +38,20 @@
                     @endforeach
                 </select>
             </div>
-            <div class="min-w-0 flex-1 basis-40">
+            <div class="min-w-0 flex-1 basis-32">
                 <label for="planning-merge-status">Merge status</label>
                 <select id="planning-merge-status" name="merge_status">
                     <option value="">All statuses</option>
                     <option value="ready" @selected($mergeStatus === 'ready')>Ready to merge</option>
                     <option value="action-needed" @selected($mergeStatus === 'action-needed')>Action needed</option>
+                </select>
+            </div>
+            <div class="min-w-0 flex-1 basis-32">
+                <label for="planning-merge-request">MR link</label>
+                <select id="planning-merge-request" name="merge_request">
+                    <option value="">With or without</option>
+                    <option value="with-link" @selected($mergeRequestFilter === 'with-link')>With MR link</option>
+                    <option value="without-link" @selected($mergeRequestFilter === 'without-link')>Without MR link</option>
                 </select>
             </div>
             <button class="primary" type="submit">Filter</button>

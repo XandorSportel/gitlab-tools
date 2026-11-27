@@ -106,6 +106,28 @@ class PlanningBoardControllerTest extends TestCase
             ->assertSeeText('No issues match these filters.');
     }
 
+    public function test_users_can_filter_issues_with_or_without_a_merge_request_link(): void
+    {
+        $this->seed(PlanningPermissionSeeder::class);
+        $this->fakeSprint();
+        $viewer = User::factory()->create(['planning_milestone_id' => 10])->givePermissionTo('view planning');
+        $issue = PlanningIssue::factory()->create(['gitlab_issue_id' => 70]);
+        $issue->forceFill(['merge_request_url' => 'https://gitlab.example.com/team/project/-/merge_requests/42'])->save();
+        PlanningIssue::factory()->create(['gitlab_issue_id' => 80]);
+
+        $this->actingAs($viewer)->get(route('planning.index', ['merge_request' => 'with-link', 'merge_status' => 'ready']))
+            ->assertOk()
+            ->assertSeeText('Navigation story')
+            ->assertDontSeeText('Login story')
+            ->assertDontSeeText('Verified story');
+
+        $this->get(route('planning.index', ['merge_request' => 'without-link']))
+            ->assertOk()
+            ->assertSeeText('Login story')
+            ->assertSeeText('Verified story')
+            ->assertDontSeeText('Navigation story');
+    }
+
     public function test_issues_paginate_in_groups_of_ten_after_search_and_tag_filters(): void
     {
         $this->freezeTime();
@@ -130,7 +152,7 @@ class PlanningBoardControllerTest extends TestCase
         Http::preventStrayRequests();
         Http::fake(['https://gitlab.example.com/api/v4/projects/123/milestones/10/issues?*' => Http::response($issues)]);
 
-        $filters = ['q' => 'Matching', 'tag' => 'Design Session', 'merge_status' => 'action-needed'];
+        $filters = ['q' => 'Matching', 'tag' => 'Design Session', 'merge_status' => 'action-needed', 'merge_request' => 'without-link'];
         $this->actingAs($viewer)->get(route('planning.index', $filters))
             ->assertOk()
             ->assertSeeText('Matching issue 03')
@@ -140,15 +162,15 @@ class PlanningBoardControllerTest extends TestCase
             ->assertDontSeeText('Different title')
             ->assertSee('aria-current="page">1</span>', false)
             ->assertSeeText('Showing 10 of 21')
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=3', false)
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=2', false);
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;merge_request=without-link&amp;page=3', false)
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;merge_request=without-link&amp;page=2', false);
 
         $this->get(route('planning.index', [...$filters, 'page' => 2]))
             ->assertOk()
             ->assertSeeText('Matching issue 13')
             ->assertDontSeeText('Matching issue 12')
             ->assertSee('aria-current="page">2</span>', false)
-            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;page=1', false);
+            ->assertSee('q=Matching&amp;tag=Design%20Session&amp;merge_status=action-needed&amp;merge_request=without-link&amp;page=1', false);
 
         $this->get(route('planning.index', [...$filters, 'page' => 3]))
             ->assertOk()
