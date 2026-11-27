@@ -14,6 +14,9 @@
         <nav>
             <a class="nav-link {{ request()->routeIs('burndown.*') ? 'active' : '' }}" href="{{ route('burndown.index') }}"><span class="nav-icon">↘</span><span>Burndown charts</span></a>
             <a class="nav-link {{ request()->routeIs('retrospective.*') ? 'active' : '' }}" href="{{ route('retrospective.index') }}"><span class="nav-icon">↔</span><span>Sprint retrospective</span></a>
+            @can('view planning')
+                <a class="nav-link {{ request()->routeIs('planning.*') ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Planning" @if(request()->routeIs('planning.*')) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Planning</span></a>
+            @endcan
         </nav>
         <details class="account">
             <summary><span class="avatar">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span><span class="account-text"><strong>{{ auth()->user()->name }}</strong><span>{{ auth()->user()->email }}</span></span><span>⋯</span></summary>
