@@ -1,10 +1,16 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\PlanningTagController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BurndownController;
 use App\Http\Controllers\PlanningBoardController;
 use App\Http\Controllers\PlanningController;
+use App\Services\AdminAccess;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -32,6 +38,29 @@ Route::middleware('auth')->group(function () {
         Route::patch('/{task}/completion', [PlanningController::class, 'updateCompletion'])
             ->whereNumber('task')->can('edit planning tasks')->name('completion.update');
         Route::delete('/{task}', [PlanningController::class, 'destroy'])->whereNumber('task')->can('delete planning tasks')->name('destroy');
+    });
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', function (): RedirectResponse {
+            foreach (AdminAccess::Pages as $page => $adminPage) {
+                if (auth()->user()->can($adminPage['permission'])) {
+                    return redirect()->route('admin.'.$page.'.index');
+                }
+            }
+
+            abort(403);
+        })->name('index');
+
+        Route::middleware('can:admin users')->group(function () {
+            Route::resource('users', UserController::class)->except('show');
+            Route::patch('/users/{user}/access', [UserController::class, 'updateAccess'])
+                ->can('admin permissions')->name('users.access');
+        });
+
+        Route::resource('roles', RoleController::class)->except('show')->middleware('can:admin roles');
+        Route::resource('permissions', PermissionController::class)->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('can:admin permissions');
+        Route::resource('tags', PlanningTagController::class)->only(['index', 'store', 'update', 'destroy'])
+            ->middleware('can:admin planning tags');
     });
     Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
     Route::patch('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');

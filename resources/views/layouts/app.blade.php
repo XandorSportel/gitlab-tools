@@ -19,10 +19,24 @@
                 <a class="nav-link {{ request()->routeIs('planning.*') ? 'active' : '' }}" href="{{ route('planning.index') }}" aria-label="Planning" @if(request()->routeIs('planning.*')) aria-current="page" @endif><span class="nav-icon" aria-hidden="true">☷</span><span>Planning</span></a>
             @endcan
         </nav>
-        <details class="account">
-            <summary><span class="avatar">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span><span class="account-text"><strong>{{ auth()->user()->name }}</strong><span>{{ auth()->user()->email }}</span></span><span>⋯</span></summary>
-            <div class="account-menu"><a href="{{ route('profile') }}">Profile</a><a href="{{ route('settings') }}">Settings</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form></div>
-        </details>
+        <div class="mt-auto">
+            @canany(array_column(\App\Services\AdminAccess::Pages, 'permission'))
+                <details class="mb-2" @if(request()->routeIs('admin.*')) open @endif>
+                    <summary class="nav-link cursor-pointer" aria-label="Admin"><span class="nav-icon" aria-hidden="true">⚙</span><span>Admin</span></summary>
+                    <nav class="max-[820px]:absolute max-[820px]:bottom-16 max-[820px]:left-full max-[820px]:z-10 max-[820px]:w-44 max-[820px]:rounded-lg max-[820px]:bg-zinc-900 max-[820px]:p-2" aria-label="Admin">
+                        @foreach (\App\Services\AdminAccess::Pages as $page => $adminPage)
+                            @can($adminPage['permission'])
+                                <a class="nav-link {{ request()->routeIs('admin.'.$page.'.*') ? 'active' : '' }}" href="{{ route('admin.'.$page.'.index') }}">{{ $adminPage['label'] }}</a>
+                            @endcan
+                        @endforeach
+                    </nav>
+                </details>
+            @endcanany
+            <details class="account">
+                <summary><span class="avatar">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span><span class="account-text"><strong>{{ auth()->user()->name }}</strong><span>{{ auth()->user()->email }}</span></span><span>⋯</span></summary>
+                <div class="account-menu"><a href="{{ route('profile') }}">Profile</a><a href="{{ route('settings') }}">Settings</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form></div>
+            </details>
+        </div>
     </aside>
     <section class="content"><header class="topbar"><h1>@yield('header','GitLab Tools')</h1></header><main class="main">@yield('content')</main></section>
 </div>@stack('scripts')</body></html>
