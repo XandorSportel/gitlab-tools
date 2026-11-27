@@ -105,6 +105,7 @@ class PlanningBoardController extends Controller
             return [
                 'issue' => $issue,
                 'tags' => $issueTags,
+                'needsAction' => $openTasks->isNotEmpty() || $issueTags !== [],
                 'tagIds' => $localIssue?->tags->modelKeys() ?? [],
                 'openTasks' => $openTasks,
                 'completedTasks' => $completedPage,

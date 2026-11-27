@@ -191,11 +191,21 @@ class PlanningBoardControllerTest extends TestCase
         $this->assertSame(['Design Session', 'Requires testing'], $issue->tags()->pluck('planning_tags.name')->all());
         $this->get(route('planning.index', ['tag' => 'Requires testing']))
             ->assertSeeText('Navigation story')
+            ->assertSeeText('Action needed')
+            ->assertDontSeeText('Ready to merge')
             ->assertDontSeeText('Login story');
+
+        PlanningTask::factory()->for($issue, 'issue')->create(['completed_at' => now()]);
+        $this->get(route('planning.index', ['tag' => 'Requires testing']))
+            ->assertSeeText('Action needed')
+            ->assertDontSeeText('Ready to merge');
 
         $this->patch(route('planning.tags.update', 70), [])
             ->assertRedirect(route('planning.index'));
         $this->assertSame([], $issue->tags()->pluck('planning_tags.name')->all());
+        $this->get(route('planning.index', ['q' => '#7']))
+            ->assertSeeText('Ready to merge')
+            ->assertDontSeeText('Action needed');
 
         Http::assertNotSent(fn ($request): bool => $request->method() !== 'GET');
     }

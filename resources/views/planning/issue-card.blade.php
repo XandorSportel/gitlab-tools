@@ -1,9 +1,9 @@
 <article class="card min-w-0" id="issue-{{ $card['issue']['iid'] }}" aria-labelledby="issue-title-{{ $card['issue']['iid'] }}">
     <p @class([
         'mb-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold',
-        'bg-green-50 text-green-800' => $card['openTasks']->isEmpty(),
-        'bg-amber-50 text-amber-900' => $card['openTasks']->isNotEmpty(),
-    ])>{{ $card['openTasks']->isEmpty() ? 'Ready to merge' : 'Action needed' }}</p>
+        'bg-green-50 text-green-800' => ! $card['needsAction'],
+        'bg-amber-50 text-amber-900' => $card['needsAction'],
+    ])>{{ $card['needsAction'] ? 'Action needed' : 'Ready to merge' }}</p>
 
     <div class="flex flex-wrap items-start justify-between gap-3">
         <h3 class="section-title [overflow-wrap:anywhere]" id="issue-title-{{ $card['issue']['iid'] }}">
