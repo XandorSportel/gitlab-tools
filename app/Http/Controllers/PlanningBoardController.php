@@ -113,6 +113,7 @@ class PlanningBoardController extends Controller
                 'issue' => $issue,
                 'tags' => $issueTags,
                 'needsAction' => $this->needsAction($localIssue),
+                'mergeRequestUrl' => $localIssue?->merge_request_url,
                 'tagIds' => $localIssue?->tags->modelKeys() ?? [],
                 'openTasks' => $openTasks,
                 'completedTasks' => $completedPage,
@@ -122,6 +123,20 @@ class PlanningBoardController extends Controller
         });
 
         return view('planning.board', compact('cards', 'tags', 'availableTags', 'search', 'selectedTag', 'mergeStatus', 'hasFilters', 'milestoneSelected', 'error'));
+    }
+
+    public function updateMergeRequest(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse
+    {
+        $validated = $request->validate([
+            'merge_request_url' => ['present', 'nullable', 'string', 'max:2048', 'url:http,https'],
+        ]);
+
+        $sprint->findIssue($request->user(), $issue);
+        $localIssue = $sprint->localIssue($issue);
+        $localIssue->merge_request_url = $validated['merge_request_url'];
+        $localIssue->save();
+
+        return redirect()->route('planning.index')->with('status', 'Merge request link updated.');
     }
 
     public function updateTags(Request $request, int $issue, PlanningSprint $sprint): RedirectResponse

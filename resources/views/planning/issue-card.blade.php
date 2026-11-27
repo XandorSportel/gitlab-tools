@@ -14,6 +14,9 @@
             @if ($card['issue']['url'])
                 <a class="button secondary" href="{{ $card['issue']['url'] }}" target="_blank" rel="noopener noreferrer">Open issue in GitLab</a>
             @endif
+            @if ($card['mergeRequestUrl'])
+                <a class="button secondary" href="{{ $card['mergeRequestUrl'] }}" target="_blank" rel="noopener noreferrer">Open merge request</a>
+            @endif
             @can('create planning tasks')
                 <a class="button" href="{{ route('planning.create', $card['issue']['id']) }}">Add task</a>
             @endcan
@@ -27,6 +30,21 @@
             @endforeach
         </ul>
     @endif
+
+    @can('edit planning tasks')
+        <details class="mt-3">
+            <summary class="muted cursor-pointer text-sm">{{ $card['mergeRequestUrl'] ? 'Edit merge request link' : 'Add merge request link' }}</summary>
+            <form class="mt-2 flex flex-wrap items-end gap-3" method="post" action="{{ route('planning.merge-request.update', $card['issue']['id']) }}">
+                @csrf
+                @method('PATCH')
+                <div class="min-w-0 flex-1 basis-64">
+                    <label for="merge-request-{{ $card['issue']['id'] }}">Merge request URL</label>
+                    <input id="merge-request-{{ $card['issue']['id'] }}" type="url" name="merge_request_url" value="{{ $card['mergeRequestUrl'] }}" maxlength="2048" placeholder="Leave blank to remove">
+                </div>
+                <button class="button secondary" type="submit">Save link</button>
+            </form>
+        </details>
+    @endcan
 
     @can('manage planning tags')
         <details class="mt-3">

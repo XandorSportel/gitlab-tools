@@ -36,6 +36,8 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('issue')->can('create planning tasks')->name('create');
         Route::post('/issues/{issue}/tasks', [PlanningController::class, 'store'])
             ->whereNumber('issue')->can('create planning tasks')->name('store');
+        Route::patch('/issues/{issue}/merge-request', [PlanningBoardController::class, 'updateMergeRequest'])
+            ->whereNumber('issue')->can('edit planning tasks')->name('merge-request.update');
         Route::patch('/issues/{issue}/tags', [PlanningBoardController::class, 'updateTags'])
             ->whereNumber('issue')->can('manage planning tags')->name('tags.update');
         Route::get('/{task}/edit', [PlanningController::class, 'edit'])->whereNumber('task')->can('edit planning tasks')->name('edit');

@@ -254,6 +254,40 @@ class PlanningBoardControllerTest extends TestCase
         $this->assertDatabaseEmpty('planning_issues');
     }
 
+    public function test_task_editors_can_save_and_remove_a_merge_request_link(): void
+    {
+        $this->seed(PlanningPermissionSeeder::class);
+        $this->fakeSprint();
+        $viewer = User::factory()->create(['planning_milestone_id' => 10])->givePermissionTo('view planning');
+        $editor = User::factory()->create(['planning_milestone_id' => 10])
+            ->givePermissionTo('view planning', 'edit planning tasks');
+        $update = route('planning.merge-request.update', 70);
+        $board = route('planning.index');
+        $url = 'https://gitlab.example.com/team/project/-/merge_requests/42';
+
+        $this->actingAs($viewer)->patch($update, ['merge_request_url' => $url])->assertForbidden();
+
+        $this->actingAs($editor)->patch(route('planning.merge-request.update', 73), ['merge_request_url' => $url])
+            ->assertNotFound();
+        $this->from($board)->patch($update, ['merge_request_url' => 'javascript:alert(1)'])
+            ->assertSessionHasErrors('merge_request_url');
+        $this->assertDatabaseEmpty('planning_issues');
+
+        $this->patch($update, ['merge_request_url' => $url])->assertRedirect($board);
+        $issue = PlanningIssue::query()->sole();
+        $this->assertSame(70, $issue->gitlab_issue_id);
+        $this->assertSame($url, $issue->merge_request_url);
+
+        $this->actingAs($viewer)->get($board)
+            ->assertSeeHtml('href="'.$url.'"')
+            ->assertSeeText('Open merge request')
+            ->assertDontSeeText('Edit merge request link');
+
+        $this->actingAs($editor)->patch($update, ['merge_request_url' => ''])->assertRedirect($board);
+        $this->assertNull($issue->fresh()->merge_request_url);
+        $this->get($board)->assertDontSeeText('Open merge request')->assertSeeText('Add merge request link');
+    }
+
     public function test_writes_require_permissions_and_a_current_open_issue(): void
     {
         $this->seed(PlanningPermissionSeeder::class);
