@@ -46,7 +46,9 @@ class GitLabClient
         $path = '/projects/'.rawurlencode($project).'/issues/'.$issueIid.'/resource_label_events';
         $key = 'gitlab:label-events:'.hash('sha256', implode("\n", [$this->baseUrl, $this->token, $path, $updatedAt]));
 
-        return Cache::remember($key, 120, function () use ($path): array {
+        $cacheSeconds = filled($updatedAt) ? 900 : 120;
+
+        return Cache::remember($key, $cacheSeconds, function () use ($path): array {
             $events = $this->all($path);
 
             usort($events, fn (array $first, array $second) => strcmp(

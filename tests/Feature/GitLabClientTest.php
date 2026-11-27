@@ -18,10 +18,15 @@ class GitLabClientTest extends TestCase
         $this->assertSame([], $client->issueLabelEvents('1', 2, '2026-11-28T10:00:00Z'));
         Http::assertSentCount(1);
 
+        $this->travel(121)->seconds();
+        $client->issueLabelEvents('1', 2, '2026-11-28T10:00:00Z');
+        $this->travelBack();
+        Http::assertSentCount(1);
+
         $client->issueLabelEvents('1', 2, '2026-11-28T10:01:00Z');
         Http::assertSentCount(2);
 
-        $this->travel(121)->seconds();
+        $this->travel(901)->seconds();
         $client->issueLabelEvents('1', 2, '2026-11-28T10:01:00Z');
         $this->travelBack();
         Http::assertSentCount(3);
