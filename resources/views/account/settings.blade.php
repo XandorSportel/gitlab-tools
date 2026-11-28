@@ -48,9 +48,14 @@
             <input id="completed_labels" name="completed_labels" maxlength="1000" value="{{ old('completed_labels', implode(', ', $completedLabels)) }}" aria-describedby="completed-labels-help">
             <p id="completed-labels-help" class="section-copy">Separate GitLab labels with commas. Leave blank to count only closed issues as complete.</p>
         </div>
+        <input type="hidden" name="hide_chart_text" value="0">
+        <label class="mb-4">
+            <input class="w-auto!" type="checkbox" name="hide_chart_text" value="1" @checked(old('hide_chart_text', $hideChartText))>
+            Hide the burndown chart explanation
+        </label>
         <button type="submit" class="primary">Save burndown preferences</button>
     </form>
-    @if($personalWorkdays || $personalLabels)
+    @if($personalWorkdays || $personalLabels || $hideChartText)
         <form method="post" action="{{ route('settings.burndown.reset') }}" style="margin-top:12px">
             @csrf
             @method('DELETE')

@@ -133,6 +133,7 @@ class BurndownCalculator
         ));
 
         return compact('labels', 'actual', 'ideal', 'dailyChanges', 'workingDays') + [
+            'idealToday' => $ideal[count($dailyChanges) - 1] ?? null,
             'initial' => $initial,
             'total' => $totalAtEnd,
             'remaining' => $remaining,

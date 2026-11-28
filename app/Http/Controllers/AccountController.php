@@ -102,6 +102,7 @@ class AccountController extends Controller
             'workdays' => ['required', 'array', 'min:1', 'max:7'],
             'workdays.*' => ['required', 'integer', 'between:1,7', 'distinct'],
             'completed_labels' => ['present', 'nullable', 'string', 'max:1000'],
+            'hide_chart_text' => ['sometimes', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -110,6 +111,9 @@ class AccountController extends Controller
             array_map('trim', explode(',', $data['completed_labels'] ?? '')),
             fn (string $label): bool => $label !== '',
         ));
+        if (isset($data['hide_chart_text'])) {
+            $user->burndown_hide_chart_text = (bool) $data['hide_chart_text'];
+        }
         $user->save();
 
         return back()->with('status', 'Burndown settings updated.');
@@ -120,6 +124,7 @@ class AccountController extends Controller
         $user = $request->user();
         $user->burndown_workdays = null;
         $user->burndown_completed_labels = null;
+        $user->burndown_hide_chart_text = false;
         $user->save();
 
         return back()->with('status', 'Project defaults restored.');

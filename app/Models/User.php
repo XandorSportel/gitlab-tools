@@ -20,7 +20,7 @@ class User extends Authenticatable
         5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
     ];
 
-    /** @return array{workdays: list<int>, completedLabels: list<string>, personalWorkdays: bool, personalLabels: bool} */
+    /** @return array{workdays: list<int>, completedLabels: list<string>, personalWorkdays: bool, personalLabels: bool, hideChartText: bool} */
     public function burndownSettings(): array
     {
         return [
@@ -28,6 +28,7 @@ class User extends Authenticatable
             'completedLabels' => $this->burndown_completed_labels ?? config('services.gitlab.completed_labels'),
             'personalWorkdays' => $this->burndown_workdays !== null,
             'personalLabels' => $this->burndown_completed_labels !== null,
+            'hideChartText' => $this->burndown_hide_chart_text ?? false,
         ];
     }
 
@@ -51,6 +52,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'burndown_workdays' => 'array',
             'burndown_completed_labels' => 'array',
+            'burndown_hide_chart_text' => 'boolean',
             'planning_milestone_id' => 'integer',
         ];
     }

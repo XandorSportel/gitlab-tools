@@ -5,23 +5,34 @@
     <div class="page-head"><div><h2>{{ $milestoneData['title'] }}</h2><p>{{ $milestoneData['start_date'] }} <i class="fi fi-rr-arrow-right" aria-hidden="true"></i> {{ $milestoneData['due_date'] }}</p></div></div>
     <div class="toolbar">
         <a class="button secondary items-center gap-2" href="{{ route('burndown.index') }}"><i class="fi fi-rr-arrow-left" aria-hidden="true"></i> All milestones</a>
-        <form method="get"><label for="metric" style="margin:0">Measure by</label><select id="metric" name="metric" onchange="this.form.submit()"><option value="count" @selected($metric === 'count')>Issue count</option><option value="weight" @selected($metric === 'weight')>Issue weight</option><option value="story_points" @selected($metric === 'story_points')>Story points</option></select></form>
+        <form method="get">
+            <label for="metric" style="margin:0">Measure by</label>
+            <select id="metric" name="metric" onchange="this.form.submit()">
+                <option value="count" @selected($metric === 'count')>Issue count</option>
+                <option value="weight" @selected($metric === 'weight')>Issue weight</option>
+                <option value="story_points" @selected($metric === 'story_points')>Story points</option>
+            </select>
+        </form>
     </div>
-    <div class="stats">
+    <div class="stats min-[821px]:grid-cols-5!">
         <div class="stat"><span>Initial scope</span><strong>{{ $chart['initial'] }}</strong></div>
         <div class="stat"><span>Completed</span><strong>{{ $chart['completed'] }}</strong></div>
         <div class="stat"><span>Remaining</span><strong>{{ $chart['remaining'] }}</strong></div>
         <div class="stat"><span>Scope added</span><strong>+{{ $chart['scope_added'] }}</strong></div>
+        <div class="stat"><span>Ideal remaining today</span><strong>{{ $chart['idealToday'] ?? '—' }}</strong></div>
     </div>
     <section class="card">
-        <h3 class="section-title">Burndown trajectory</h3><p class="section-copy">Daily remaining work compared with the ideal trajectory.</p>
-        <div class="section-copy">
-            Working days ({{ $burndownSettings['personalWorkdays'] ? 'personal' : 'project default' }}):
-            {{ implode(', ', array_intersect_key(\App\Models\User::WEEKDAY_NAMES, array_flip($burndownSettings['workdays']))) }}<br>
-            Completion labels ({{ $burndownSettings['personalLabels'] ? 'personal' : 'project default' }}):
-            {{ implode(', ', $burndownSettings['completedLabels']) ?: 'Closed issues only' }}.
-            <a href="{{ route('settings') }}">Settings</a>
-        </div>
+        <h3 class="section-title">Burndown trajectory</h3>
+        @unless ($burndownSettings['hideChartText'])
+            <p class="section-copy">Daily remaining work compared with the ideal trajectory.</p>
+            <div class="section-copy">
+                Working days ({{ $burndownSettings['personalWorkdays'] ? 'personal' : 'project default' }}):
+                {{ implode(', ', array_intersect_key(\App\Models\User::WEEKDAY_NAMES, array_flip($burndownSettings['workdays']))) }}<br>
+                Completion labels ({{ $burndownSettings['personalLabels'] ? 'personal' : 'project default' }}):
+                {{ implode(', ', $burndownSettings['completedLabels']) ?: 'Closed issues only' }}.
+                <a href="{{ route('settings') }}">Settings</a>
+            </div>
+        @endunless
         <div class="chart-wrap"><svg id="burndown" class="chart" role="img" aria-label="Burndown chart"></svg></div>
         <div class="legend"><span><i class="dot" style="background:#6d45e6"></i>Actual remaining</span><span><i class="dot" style="background:#c8cedb"></i>Ideal trajectory</span></div>
     </section>
