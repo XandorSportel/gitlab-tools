@@ -15,7 +15,7 @@ class PlanningSprint
         return $this->client()->milestones((string) config('services.gitlab.project'));
     }
 
-    /** @return array<int, array{id: int, iid: int, title: string, url: ?string, updatedAt: int}> */
+    /** @return array<int, array{id: int, iid: int, title: string, url: ?string, updatedAt: int, labels: list<string>}> */
     public function issues(User $user): array
     {
         if ($user->planning_milestone_id === null) {
@@ -26,7 +26,8 @@ class PlanningSprint
         $issues = [];
 
         foreach ($this->client()->milestoneIssues((string) config('services.gitlab.project'), $user->planning_milestone_id) as $issue) {
-            if (($issue['state'] ?? null) !== 'opened' || in_array($label, array_map(mb_strtolower(...), $issue['labels'] ?? []), true)) {
+            $labels = $issue['labels'] ?? [];
+            if (($issue['state'] ?? null) !== 'opened' || in_array($label, array_map(mb_strtolower(...), $labels), true)) {
                 continue;
             }
 
@@ -37,6 +38,7 @@ class PlanningSprint
                 'iid' => (int) $issue['iid'],
                 'title' => $issue['title'],
                 'updatedAt' => strtotime($issue['updated_at'] ?? $issue['created_at'] ?? '') ?: 0,
+                'labels' => array_values(array_filter($labels, fn (string $label): bool => preg_match('/^(BV|SP)-/i', $label) === 1)),
                 'url' => Str::isUrl($url, ['http', 'https']) ? $url : null,
             ];
         }
@@ -44,7 +46,7 @@ class PlanningSprint
         return $issues;
     }
 
-    /** @return array{id: int, iid: int, title: string, url: ?string, updatedAt: int} */
+    /** @return array{id: int, iid: int, title: string, url: ?string, updatedAt: int, labels: list<string>} */
     public function findIssue(User $user, int $id): array
     {
         try {

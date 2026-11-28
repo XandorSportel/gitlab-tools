@@ -23,6 +23,14 @@
         </div>
     </div>
 
+    @if ($card['issue']['labels'])
+        <ul class="mt-3 flex flex-wrap gap-2" aria-label="GitLab labels">
+            @foreach ($card['issue']['labels'] as $label)
+                <li><span class="badge inline-block bg-purple-100! text-purple-800!">{{ $label }}</span></li>
+            @endforeach
+        </ul>
+    @endif
+
     @if ($card['tags'])
         <ul class="mt-3 flex flex-wrap gap-2" aria-label="Issue tags">
             @foreach ($card['tags'] as $tag)

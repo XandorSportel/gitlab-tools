@@ -178,7 +178,7 @@ class PlanningBoardController extends Controller
             || $issue->tasks->contains(fn (PlanningTask $task): bool => $task->completed_at === null));
     }
 
-    /** @param array{id: int, iid: int, title: string, url: ?string, updatedAt: int} $issue */
+    /** @param array{id: int, iid: int, title: string, url: ?string, updatedAt: int, labels: list<string>} $issue */
     private function matchesSearch(array $issue, string $search): bool
     {
         if (preg_match('/^#?(\d+)$/D', $search, $matches)) {

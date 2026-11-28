@@ -43,8 +43,9 @@ class PlanningBoardControllerTest extends TestCase
         $this->actingAs($viewer)
             ->get(route('planning.index'))
             ->assertOk()
-            ->assertSeeInOrder(['Action needed', 'Navigation story', 'Review navigation', 'Ready to merge', 'Login story'])
+            ->assertSeeInOrder(['Action needed', 'Navigation story', 'Review navigation', 'Ready to merge', 'Login story', 'BV-8', 'sp-3'])
             ->assertSee('href="https://gitlab.example.com/team/project/-/issues/7"', false)
+            ->assertDontSeeText('backend-only')
             ->assertDontSeeText('Verified story')
             ->assertDontSeeText('Closed story')
             ->assertDontSeeText('Old standalone task');
@@ -381,7 +382,7 @@ class PlanningBoardControllerTest extends TestCase
         Http::fake([
             'https://gitlab.example.com/api/v4/projects/123/milestones/10/issues?*' => Http::response([
                 ['id' => 70, 'iid' => 7, 'state' => 'opened', 'labels' => [], 'title' => 'Navigation story', 'web_url' => 'https://gitlab.example.com/team/project/-/issues/7'],
-                ['id' => 80, 'iid' => 8, 'state' => 'opened', 'labels' => [], 'title' => 'Login story'],
+                ['id' => 80, 'iid' => 8, 'state' => 'opened', 'labels' => ['BV-8', 'sp-3', 'backend-only'], 'title' => 'Login story'],
                 ['id' => 71, 'iid' => 71, 'state' => 'opened', 'labels' => ['verified'], 'title' => 'Verified story'],
                 ['id' => 72, 'iid' => 72, 'state' => 'closed', 'labels' => [], 'title' => 'Closed story'],
                 ['id' => 73, 'iid' => 73, 'state' => 'opened', 'labels' => ['Done'], 'title' => 'Default done story'],
